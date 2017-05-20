@@ -80,6 +80,7 @@ uint32 user_rf_cal_sector_set(void)
 *******************************************************************************/
 void user_init(void)
 {
-    printf("SDK version:%s\n", system_get_sdk_version());
+  uart_init(BIT_RATE_115200,BIT_RATE_115200);
+  printf("SDK version:%s\n", system_get_sdk_version());
 }
 

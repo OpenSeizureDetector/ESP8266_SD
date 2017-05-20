@@ -1,15 +1,7 @@
 #!/bin/bash
 
-:<<!
-******NOTICE******
-MUST set SDK_PATH & BIN_PATH firstly!!!
-example:
-export SDK_PATH=~/esp_iot_sdk_freertos
-export BIN_PATH=~/esp8266_bin
-!
-
-export SDK_PATH=$SDK_PATH
-export BIN_PATH=$BIN_PATH
+export SDK_PATH=/usr/local/esp8266/ESP8266_RTOS_SDK/
+export BIN_PATH=./bin
 
 echo "gen_misc.sh version 20150911"
 echo ""
