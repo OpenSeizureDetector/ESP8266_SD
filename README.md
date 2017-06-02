@@ -33,5 +33,20 @@ A version of the OpenSeizureDetector Pebble Watch App that runs on an ESP8266 wi
 *  GND
 
 # Software
+## Software Structure
 *  Use ESP8266 RTOS SDK.
 *  Base ADXL interface code on (https://gist.github.com/shunkino/6b1734ee892fe2efbd12)
+*  Still a lot to do to get it to a proof-of-concept.....
+
+## Building 
+*  Build the toolchain as a standalone toolchain from (https://github.com/pfalcon/esp-open-sdk)
+*  Download the RTOS SDK for ESP8266 (https://github.com/espressif/ESP8266_RTOS_SDK)
+*  Build using
+  *  cd osd_app
+  *  source ../set_paths.sh
+  *  ./gen_misc.sh (accept default values)
+  *  ../flash_image.sh
+  *  ../monitor.py (to view debugging information over serial (USB) interface)
+  
+  
+*  
