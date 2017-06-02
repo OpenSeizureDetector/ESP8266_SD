@@ -1,4 +1,5 @@
-# ESP8266_SD
+# DIY Hardware Seizure Detector
+
 A version of the OpenSeizureDetector Pebble Watch App that runs on an ESP8266 wifi module.
 
 # The Plan
@@ -18,6 +19,11 @@ A version of the OpenSeizureDetector Pebble Watch App that runs on an ESP8266 wi
 * Small ESP8266 Board - ESP-12F (http://www.ebay.co.uk/itm/282412004710?_trksid=p2060353.m2749.l2649&ssPageName=STRK%3AMEBIDX%3AIT) (£2.52)
 * ADXL345 Individual IC (http://www.ebay.co.uk/itm/132189086693?_trksid=p2060353.m2749.l2649&ssPageName=STRK%3AMEBIDX%3AIT) (£1.35)
 * LiPo Battery (don't know which yet)
+
+![Modules Photo](Documentation/20170602_211058.jpg)
+
+![Stacked Modules](Documentation/20170602_211126.jpg)
+
 
 # Hardware Connections
 ## Connect ADXL345 accelerometer to ESP8226
