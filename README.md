@@ -1,4 +1,4 @@
-# DIY Hardware Seizure Detector
+# Seizure Detector Watch using DIY Hardware
 
 A version of the OpenSeizureDetector Pebble Watch App that runs on an ESP8266 wifi module.
 
