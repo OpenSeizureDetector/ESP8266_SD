@@ -22,8 +22,8 @@ GEN_IMAGES= eagle.app.v6.out
 GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=    \
-	user    \
-	sample_lib
+	user driver   #\
+	#sample_lib
 
 endif # } PDIR
 
@@ -31,7 +31,7 @@ LDDIR = $(SDK_PATH)/ld
 
 CCFLAGS += -Os
 
-TARGET_LDFLAGS =		\
+TARGET_LDFLAGS = 		\
 	-nostdlib		\
 	-Wl,-EL \
 	--longcalls \
@@ -46,8 +46,8 @@ ifeq ($(FLAVOR),release)
 endif
 
 COMPONENTS_eagle.app.v6 = \
-	user/libuser.a  \
-	sample_lib/libsample.a
+	user/libuser.a driver/libdriver.a #\
+	#sample_lib/libsample.a
 
 LINKFLAGS_eagle.app.v6 = \
 	-L$(SDK_PATH)/lib        \
