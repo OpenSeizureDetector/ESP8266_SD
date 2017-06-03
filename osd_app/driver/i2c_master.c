@@ -106,8 +106,8 @@ i2c_master_init(void)
 void ICACHE_FLASH_ATTR
 i2c_master_gpio_init(void)
 {
-    ETS_GPIO_INTR_DISABLE() ;
-//    ETS_INTR_LOCK();
+  //ETS_GPIO_INTR_DISABLE() ;
+  ETS_INTR_LOCK();
 
     PIN_FUNC_SELECT(I2C_MASTER_SDA_MUX, I2C_MASTER_SDA_FUNC);
     PIN_FUNC_SELECT(I2C_MASTER_SCL_MUX, I2C_MASTER_SCL_FUNC);
@@ -119,8 +119,8 @@ i2c_master_gpio_init(void)
 
     I2C_MASTER_SDA_HIGH_SCL_HIGH();
 
-    ETS_GPIO_INTR_ENABLE() ;
-//    ETS_INTR_UNLOCK();
+    //ETS_GPIO_INTR_ENABLE() ;
+    ETS_INTR_UNLOCK();
 
     i2c_master_init();
 }

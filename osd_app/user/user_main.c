@@ -111,7 +111,7 @@ void read_reg(int *result, uint8_t reg_addr) {
 		i2c_master_stop();
 	}
 	os_delay_us(40000);
-	int res = i2c_master_read();
+	int res = i2c_master_readByte();
 	i2c_master_stop();
 	*result = res;
 	printf("reading %x succeed\n", res);
@@ -146,7 +146,7 @@ void read_acc_reg(int32 client_sock, uint8_t reg_addr) {
 	}
 	os_delay_us(40000);
 	for (i = 0; i < 6; ++i) {
-		temp[i] = i2c_master_read();
+		temp[i] = i2c_master_readByte();
 		if (i == 5) {
 			i2c_set_ack(false);
 		} else {
@@ -189,11 +189,12 @@ void write_to(int32 client_sock, uint8_t reg_addr, uint8_t val) {
 }
 
 void adxl_init() {
-	int response;
-	i2c_master_init();
-	// read device id.
-	read_reg(&response, 0x00);
-	printf("device: %x\n", response);
+  printf("adxl_init");
+  int response;
+  i2c_master_init();
+  // read device id.
+  read_reg(&response, 0x00);
+  printf("device: %x\n", response);
 }
 
 
