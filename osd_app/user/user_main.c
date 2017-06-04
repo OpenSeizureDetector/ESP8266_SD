@@ -91,12 +91,14 @@ void read_reg(int *result, uint8_t reg_addr) {
 	i2c_master_start();
 	//ack = i2c_master_writeByte((DEV_ADDR << 1) + 0);
 	i2c_master_writeByte((DEV_ADDR << 1) + 0);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("addr not ack when tx write command \n");
 		i2c_master_stop();
 	}
 	//ack = i2c_master_writeByte(reg_addr);
 	i2c_master_writeByte(reg_addr);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("register addr not ack \n");
 		i2c_master_stop();
@@ -106,6 +108,7 @@ void read_reg(int *result, uint8_t reg_addr) {
 	i2c_master_start();
 	//ack = i2c_master_writeByte((DEV_ADDR << 1) + 1);
         i2c_master_writeByte((DEV_ADDR << 1) + 1);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("read device addr not ack when tx write command \n");
 		i2c_master_stop();
@@ -125,12 +128,14 @@ void read_acc_reg(int32 client_sock, uint8_t reg_addr) {
 	i2c_master_start();
 	//ack = i2c_master_writeByte((DEV_ADDR << 1) + 0);
 	i2c_master_writeByte((DEV_ADDR << 1) + 0);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("addr not ack when tx write command \n");
 		i2c_master_stop();
 	}
 	//ack = i2c_master_writeByte(reg_addr);
 	i2c_master_writeByte(reg_addr);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("register addr not ack \n");
 		i2c_master_stop();
@@ -140,6 +145,7 @@ void read_acc_reg(int32 client_sock, uint8_t reg_addr) {
 	i2c_master_start();
 	//ack = i2c_master_writeByte((DEV_ADDR << 1) + 1);
 	i2c_master_writeByte((DEV_ADDR << 1) + 1);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("read device add not ack\n");
 		i2c_master_stop();
@@ -148,9 +154,9 @@ void read_acc_reg(int32 client_sock, uint8_t reg_addr) {
 	for (i = 0; i < 6; ++i) {
 		temp[i] = i2c_master_readByte();
 		if (i == 5) {
-			i2c_set_ack(false);
+			i2c_master_setAck(false);
 		} else {
-			i2c_set_ack(true);
+			i2c_master_setAck(true);
 		}
 	}
 	i2c_master_stop();
@@ -167,6 +173,7 @@ void write_to(int32 client_sock, uint8_t reg_addr, uint8_t val) {
 	i2c_master_start();
 	//ack = i2c_master_writeByte((DEV_ADDR << 1) + 0);
 	i2c_master_writeByte((DEV_ADDR << 1) + 0);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("addr not ack when tx write command \n");
 		i2c_master_stop();
@@ -174,6 +181,7 @@ void write_to(int32 client_sock, uint8_t reg_addr, uint8_t val) {
 	os_delay_us(40000);
 	//ack = i2c_master_writeByte(reg_addr);
 	i2c_master_writeByte(reg_addr);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("reg addr not ack when tx write command \n");
 		i2c_master_stop();
@@ -181,6 +189,7 @@ void write_to(int32 client_sock, uint8_t reg_addr, uint8_t val) {
 	os_delay_us(40000);
 	//ack = i2c_master_writeByte(val);
         i2c_master_writeByte(val);
+	ack = i2c_master_getAck();
 	if (!ack) {
 		printf("val not ack when tx write command \n");
 		i2c_master_stop();
@@ -189,12 +198,24 @@ void write_to(int32 client_sock, uint8_t reg_addr, uint8_t val) {
 }
 
 void adxl_init() {
-  printf("adxl_init");
+  printf("adxl_init()\n");
   int response;
   i2c_master_init();
   // read device id.
   read_reg(&response, 0x00);
   printf("device: %x\n", response);
+}
+
+
+LOCAL void ICACHE_FLASH_ATTR ReadAccelTask(void *pvParam) {
+  int32 response;
+  while(1) {
+    vTaskDelay(1000/portTICK_RATE_MS);
+    printf("Read Accel...\n");
+    // FIXME - where does the response go????
+    read_acc_reg(response, REG_ADDR);
+    printf("Read Accel...response=%d\n",response);
+  }
 }
 
 
@@ -231,15 +252,17 @@ void user_init(void)
   printf("*****************************************\n");
   printf("* OpenSeizureDetector - ESP8266 Version *\n");
   printf("SDK version:%s\n", system_get_sdk_version());
+  printf("Graham's i2c.h - %d\n",GRAHAMS_VERSION);
   printf("*****************************************\n\n");
 
 
   adxl_init();
   
    // Config pin as GPIO12
-  PIN_FUNC_SELECT (PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
+  //PIN_FUNC_SELECT (PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
 
-  xTaskCreate(LEDBlinkTask,(signed char *)"Blink",256,NULL,2,NULL);
+  //xTaskCreate(LEDBlinkTask,(signed char *)"Blink",256,NULL,2,NULL);
+  xTaskCreate(ReadAccelTask,(signed char *)"ReadAccel",256,NULL,2,NULL);
 
 
 }

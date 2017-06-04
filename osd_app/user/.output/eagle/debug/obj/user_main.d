@@ -83,6 +83,6 @@
  /usr/local/esp8266/ESP8266_RTOS_SDK/include/espressif/smartconfig.h \
  /usr/local/esp8266/ESP8266_RTOS_SDK/include/espressif/spi_flash.h \
  /usr/local/esp8266/ESP8266_RTOS_SDK/include/espressif/pwm.h \
- /usr/local/esp8266/ESP8266_RTOS_SDK/driver_lib/include/i2c_master.h \
+ ../include/i2c_master.h \
  /usr/local/esp8266/ESP8266_RTOS_SDK/include/espressif/esp8266/pin_mux_register.h \
  ../include/osd_app.h

@@ -74,6 +74,7 @@ i2c_master_init(void)
 {
     uint8 i;
 
+    printf("i2c_master_init..\n");
     i2c_master_setDC(1, 0);
     i2c_master_wait(5);
 
