@@ -225,15 +225,17 @@ LOCAL void ICACHE_FLASH_ATTR LEDBlinkTask(void *pvParam) {
   while(1) {
     vTaskDelay(1000/portTICK_RATE_MS);
     printf("Blink...\n");
-    if (GPIO_REG_READ(GPIO_OUT_ADDRESS) & BIT2)
+    if (GPIO_REG_READ(GPIO_OUT_ADDRESS) & BIT4)
       {
 	// set gpio low
-	gpio_output_set(0,BIT2,BIT2,0);
+	gpio_output_set(0,BIT4,BIT4,0);
+	gpio_output_set(BIT5,0,BIT5,0);
       }
     else
       {
 	// set gpio high
-	gpio_output_set(BIT2,0,BIT2,0);
+	gpio_output_set(BIT4,0,BIT4,0);
+	gpio_output_set(0,BIT5,BIT5,0);
       }
   }
 }
@@ -261,8 +263,8 @@ void user_init(void)
    // Config pin as GPIO12
   //PIN_FUNC_SELECT (PERIPHS_IO_MUX_MTDI_U, FUNC_GPIO12);
 
-  //xTaskCreate(LEDBlinkTask,(signed char *)"Blink",256,NULL,2,NULL);
-  xTaskCreate(ReadAccelTask,(signed char *)"ReadAccel",256,NULL,2,NULL);
+  xTaskCreate(LEDBlinkTask,(signed char *)"Blink",256,NULL,2,NULL);
+  //xTaskCreate(ReadAccelTask,(signed char *)"ReadAccel",256,NULL,2,NULL);
 
 
 }

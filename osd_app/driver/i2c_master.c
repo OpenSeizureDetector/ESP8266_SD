@@ -75,6 +75,14 @@ i2c_master_init(void)
     uint8 i;
 
     printf("i2c_master_init..\n");
+
+    /* Enable internal pullup resistors on SDA and SCL lines */
+    //PIN_PULLUP_EN(I2C_MASTER_SDA_GPIO);
+    //PIN_PULLUP_EN(I2C_MASTER_SCL_GPIO);
+    
+		 
+
+    
     i2c_master_setDC(1, 0);
     i2c_master_wait(5);
 
