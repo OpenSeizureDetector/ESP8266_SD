@@ -136,7 +136,7 @@ void user_init(void)
   //mainqueue = xQueueCreate(10, sizeof(uint32_t));
   //xTaskCreate(task1, "tsk1", 256, &mainqueue, 2, NULL);
   //xTaskCreate(task2, "tsk2", 256, &mainqueue, 2, NULL);
-  //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
+  xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
   //adxl_init();
 }
