@@ -10,6 +10,8 @@
 #include "queue.h"
 #include "osd_app.h"
 
+#include "adxl345/adxl345.h"
+
 void read_reg(int *result, uint8_t reg_addr);
 
 //static QueueHandle_t mainqueue;
@@ -109,21 +111,39 @@ void i2cScanTask(void *pvParameters) {
   printf("i2c_init() complete\n");
 
   while(1) {
-    uint8_t id;
-    uint8_t reg = 0;
+    //uint8_t id;
+    //uint8_t reg = 0;
     uint8_t i;
 
-    printf("i2c scan...\n");
+    //printf("i2c scan...\n");
 
-    for (i=0;i<127;i++) {
-      if (i2c_slave_read(i, &reg, &id, 1)) {
+    //for (i=0;i<127;i++) {
+    //  if (i2c_slave_read(i, &reg, &id, 1)) {
 	// non-zero response = error
-      } else {
-	printf("Response received from address %d (0x%x) - id=%d (0x%x)id\n",i,i,id,id);
-      }
-    }
+    //  } else {
+    //	printf("Response received from address %d (0x%x) - id=%d (0x%x)id\n",i,i,id,id);
+    //  }
+    //}
+
+    i = findAdxl345(SCL_PIN,SDA_PIN);
+    printf("ADXL found at address %x\n",i);
     vTaskDelay(5000 / portTICK_PERIOD_MS);
   } 
+}
+
+void monitorAdxl345AccelTask(void *pvParameters) {
+  uint8_t devAddr;
+  uint16_t xAcc;
+  printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+  devAddr = findAdxl345(SCL_PIN,SDA_PIN);
+  printf("ADXL345 found at address 0x%x\n",devAddr);
+
+
+  while(1) {
+    xAcc = adxl345_getXAcc(devAddr);
+    printf("xAcc=%d\n",xAcc);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
 }
 
 void user_init(void)
@@ -136,7 +156,7 @@ void user_init(void)
   //mainqueue = xQueueCreate(10, sizeof(uint32_t));
   //xTaskCreate(task1, "tsk1", 256, &mainqueue, 2, NULL);
   //xTaskCreate(task2, "tsk2", 256, &mainqueue, 2, NULL);
-  xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
-  xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
-  //adxl_init();
+  //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
+  //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
+  xTaskCreate(monitorAdxl345AccelTask,"monitorAdxl345Accel",256,NULL,2,NULL);
 }
