@@ -107,7 +107,7 @@ void task2(void *pvParameters)
 
 void i2cScanTask(void *pvParameters) {
   printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
-  i2c_init(SCL_PIN,SDA_PIN);
+  //i2c_init(SCL_PIN,SDA_PIN);
   printf("i2c_init() complete\n");
 
   while(1) {
@@ -125,23 +125,27 @@ void i2cScanTask(void *pvParameters) {
     //  }
     //}
 
-    i = findAdxl345(SCL_PIN,SDA_PIN);
+    i = ADXL345_init(SCL_PIN,SDA_PIN);
     printf("ADXL found at address %x\n",i);
     vTaskDelay(5000 / portTICK_PERIOD_MS);
   } 
 }
 
 void monitorAdxl345AccelTask(void *pvParameters) {
-  uint8_t devAddr;
   uint16_t xAcc;
+  uint8_t devAddr;
+  
   printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
-  devAddr = findAdxl345(SCL_PIN,SDA_PIN);
+  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
   printf("ADXL345 found at address 0x%x\n",devAddr);
 
 
   while(1) {
-    xAcc = adxl345_getXAcc(devAddr);
-    printf("xAcc=%d\n",xAcc);
+    ADXL345_Vector r;
+    xAcc = ADXL345_getXAcc();
+    r = ADXL345_readRaw();
+    
+    printf("xAcc=%d, r.x=%f, r.y=%f, r.z=%f\n",xAcc,r.XAxis,r.YAxis,r.ZAxis);
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }

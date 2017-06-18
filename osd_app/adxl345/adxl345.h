@@ -46,6 +46,17 @@
 #define ADXL345_REG_FIFO_STATUS      (0x39)
 
 
+#ifndef VECTOR_STRUCT_H
+#define VECTOR_STRUCT_H
+typedef struct 
+{
+    float XAxis;
+    float YAxis;
+    float ZAxis;
+} ADXL345_Vector;
+#endif
+
 // Function prototypes
-uint8_t findAdxl345(int scl, int sca);
-uint16_t adxl345_getXAcc(uint8_t devAddr);
+uint8_t ADXL345_init(int scl, int sca);
+uint16_t ADXL345_getXAcc();
+ADXL345_Vector ADXL345_readRaw();
