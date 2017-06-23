@@ -148,8 +148,11 @@ uint8_t ADXL345_init(int scl, int sda) {
   //printf("Setting 13 bit mode\n");
   //ADXL345_setRange(ADXL345_RANGE_2G);
 
-  //printf("Setting 2G range\n");
-  //ADXL345_setRange(ADXL345_RANGE_2G);
+  printf("Setting 2G range\n");
+  ADXL345_setRange(ADXL345_RANGE_2G);
+
+  printf("Setting to 100Hz data rate\n");
+  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
 
   printf("Setting Data Format\n");
   if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x0B)==-1) {
@@ -177,11 +180,12 @@ uint8_t ADXL345_init(int scl, int sda) {
 
 
   printf("************************************\n");
-  printf("INT_SOURCE=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
-  printf("BW_RATE=   0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
-  printf("DEV_ID=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
-  printf("INT_ENABLE=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
-  printf("POWER_CTL= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  printf("DEV_ID=     0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
+  printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+  printf("BW_RATE=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
+  printf("DATA_FORMAT=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+  printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
   printf("************************************\n");
   
   f.XAxis = 0;
