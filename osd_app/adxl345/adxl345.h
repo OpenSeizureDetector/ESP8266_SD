@@ -145,85 +145,85 @@ typedef struct
     bool isTapOnY;
     bool isTapOnZ;
     bool isDataReady;
-} Activites;
+} ADXL345_Activites;
 
-bool begin(void);
-void clearSettings(void);
+//bool ADXL345_begin(void);
+void ADXL345_clearSettings(void);
 
-ADXL345_Vector readRaw(void);
-ADXL345_Vector readNormalize(float gravityFactor);
-ADXL345_Vector readScaled(void);
+ADXL345_Vector ADXL345_readRaw(void);
+ADXL345_Vector ADXL345_readNormalize(float gravityFactor);
+ADXL345_Vector ADXL345_readScaled(void);
 
-Activites readActivites(void);
+ADXL345_Activites ADXL345_readActivites(void);
 
-ADXL345_Vector lowPassFilter(ADXL345_Vector vector, float alpha);
+ADXL345_Vector ADXL345_lowPassFilter(ADXL345_Vector vector, float alpha);
 
-void  setRange(ADXL345_range_t range);
-ADXL345_range_t getRange(void);
+void  ADXL345_setRange(ADXL345_range_t range);
+ADXL345_range_t ADXL345_getRange(void);
 
-void  setDataRate(ADXL345_dataRate_t dataRate);
-ADXL345_dataRate_t getDataRate(void);
+void  ADXL345_setDataRate(ADXL345_dataRate_t dataRate);
+ADXL345_dataRate_t ADXL345_getDataRate(void);
 
-void setTapThreshold(float threshold);
-float getTapThreshold(void);
+void ADXL345_setTapThreshold(float threshold);
+float ADXL345_getTapThreshold(void);
 
-void setTapDuration(float duration);
-float getTapDuration(void);
+void ADXL345_setTapDuration(float duration);
+float ADXL345_getTapDuration(void);
 
-void setDoubleTapLatency(float latency);
-float getDoubleTapLatency(void);
+void ADXL345_setDoubleTapLatency(float latency);
+float ADXL345_getDoubleTapLatency(void);
 
-void setDoubleTapWindow(float window);
-float getDoubleTapWindow(void);
+void ADXL345_setDoubleTapWindow(float window);
+float ADXL345_getDoubleTapWindow(void);
 
-void setActivityThreshold(float threshold);
-float getActivityThreshold(void);
+void ADXL345_setActivityThreshold(float threshold);
+float ADXL345_getActivityThreshold(void);
 
-void setInactivityThreshold(float threshold);
-float getInactivityThreshold(void);
+void ADXL345_setInactivityThreshold(float threshold);
+float ADXL345_getInactivityThreshold(void);
 
-void setTimeInactivity(uint8_t time);
-uint8_t getTimeInactivity(void);
+void ADXL345_setTimeInactivity(uint8_t time);
+uint8_t ADXL345_getTimeInactivity(void);
 
-void setFreeFallThreshold(float threshold);
-float getFreeFallThreshold(void);
+void ADXL345_setFreeFallThreshold(float threshold);
+float ADXL345_getFreeFallThreshold(void);
 
-void setFreeFallDuration(float duration);
-float getFreeFallDuration();
+void ADXL345_setFreeFallDuration(float duration);
+float ADXL345_getFreeFallDuration();
 
-void setActivityX(bool state);
-bool getActivityX(void);
-void setActivityY(bool state);
-bool getActivityY(void);
-void setActivityZ(bool state);
-bool getActivityZ(void);
-void setActivityXYZ(bool state);
+void ADXL345_setActivityX(bool state);
+bool ADXL345_getActivityX(void);
+void ADXL345_setActivityY(bool state);
+bool ADXL345_getActivityY(void);
+void ADXL345_setActivityZ(bool state);
+bool ADXL345_getActivityZ(void);
+void ADXL345_setActivityXYZ(bool state);
 
-void setInactivityX(bool state);
-bool getInactivityX(void);
-void setInactivityY(bool state);
-bool getInactivityY(void);
-void setInactivityZ(bool state);
-bool getInactivityZ(void);
-void setInactivityXYZ(bool state);
+void ADXL345_setInactivityX(bool state);
+bool ADXL345_getInactivityX(void);
+void ADXL345_setInactivityY(bool state);
+bool ADXL345_getInactivityY(void);
+void ADXL345_setInactivityZ(bool state);
+bool ADXL345_getInactivityZ(void);
+void ADXL345_setInactivityXYZ(bool state);
 
-void setTapDetectionX(bool state);
-bool getTapDetectionX(void);
-void setTapDetectionY(bool state);
-bool getTapDetectionY(void);
-void setTapDetectionZ(bool state);
-bool getTapDetectionZ(void);
-void setTapDetectionXYZ(bool state);
+void ADXL345_setTapDetectionX(bool state);
+bool ADXL345_getTapDetectionX(void);
+void ADXL345_setTapDetectionY(bool state);
+bool ADXL345_getTapDetectionY(void);
+void ADXL345_setTapDetectionZ(bool state);
+bool ADXL345_getTapDetectionZ(void);
+void ADXL345_setTapDetectionXYZ(bool state);
 
-void useInterrupt(ADXL345_int_t interrupt);
+void ADXL345_useInterrupt(ADXL345_int_t interrupt);
 
 
-void writeRegister8(uint8_t reg, uint8_t value);
-uint8_t readRegister8(uint8_t reg);
-uint8_t fastRegister8(uint8_t reg);
-int16_t readRegister16(uint8_t reg);
-void writeRegisterBit(uint8_t reg, uint8_t pos, bool state);
-bool readRegisterBit(uint8_t reg, uint8_t pos);
+uint8_t ADXL345_writeRegister8(uint8_t reg, uint8_t value);
+uint8_t ADXL345_readRegister8(uint8_t reg);
+uint8_t ADXL345_fastRegister8(uint8_t reg);
+int16_t ADXL345_readRegister16(uint8_t reg);
+void ADXL345_writeRegisterBit(uint8_t reg, uint8_t pos, bool state);
+bool ADXL345_readRegisterBit(uint8_t reg, uint8_t pos);
 
 
 

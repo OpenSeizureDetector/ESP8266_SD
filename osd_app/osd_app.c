@@ -37,47 +37,6 @@ void LEDBlinkTask(void *pvParam) {
 }
 
 
-void adxl_init() {
-  int response;
-  printf("adxl_init() - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
-  i2c_init(SCL_PIN,SDA_PIN);
-  printf("i2c_init() complete\n");
-  // read device id.
-  read_reg(&response, 0x00);
-  printf("device: %x\n", response);
-}
-
-
-void read_reg(int *result, uint8_t reg_addr) {
-	uint8_t ack;
-	i2c_start();
-	ack = i2c_write((DEV_ADDR << 1) + 0);
-	if (!ack) {
-		printf("addr not ack when tx write command \n");
-		i2c_stop();
-	}
-	ack = i2c_write(reg_addr);
-	if (!ack) {
-		printf("register addr not ack \n");
-		i2c_stop();
-	}
-	//os_delay_us(40000);
-	vTaskDelay(40 / portTICK_PERIOD_MS);
-	i2c_stop();
-	i2c_start();
-	ack = i2c_write((DEV_ADDR << 1) + 1);
-	if (!ack) {
-		printf("read device addr not ack when tx write command \n");
-		i2c_stop();
-	}
-	//os_delay_us(40000);
-	vTaskDelay(40 / portTICK_PERIOD_MS);
-	int res = i2c_read(false);
-	i2c_stop();
-	*result = res;
-	printf("reading %x succeed\n", res);
-}
-
 
 void task1(void *pvParameters)
 {
@@ -106,25 +65,12 @@ void task2(void *pvParameters)
 }
 
 void i2cScanTask(void *pvParameters) {
+  uint8_t i;
   printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
   //i2c_init(SCL_PIN,SDA_PIN);
   printf("i2c_init() complete\n");
 
   while(1) {
-    //uint8_t id;
-    //uint8_t reg = 0;
-    uint8_t i;
-
-    //printf("i2c scan...\n");
-
-    //for (i=0;i<127;i++) {
-    //  if (i2c_slave_read(i, &reg, &id, 1)) {
-	// non-zero response = error
-    //  } else {
-    //	printf("Response received from address %d (0x%x) - id=%d (0x%x)id\n",i,i,id,id);
-    //  }
-    //}
-
     i = ADXL345_init(SCL_PIN,SDA_PIN);
     printf("ADXL found at address %x\n",i);
     vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -132,21 +78,17 @@ void i2cScanTask(void *pvParameters) {
 }
 
 void monitorAdxl345AccelTask(void *pvParameters) {
-  uint16_t xAcc;
   uint8_t devAddr;
+  ADXL345_Vector r;
   
   printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
   devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
   printf("ADXL345 found at address 0x%x\n",devAddr);
-
-
+  
   while(1) {
-    ADXL345_Vector r;
-    xAcc = ADXL345_getXAcc();
     r = ADXL345_readRaw();
-    
-    printf("xAcc=%d, r.x=%f, r.y=%f, r.z=%f\n",xAcc,r.XAxis,r.YAxis,r.ZAxis);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    printf("r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",r.XAxis,r.YAxis,r.ZAxis);
+    vTaskDelay(500 / portTICK_PERIOD_MS);
   }
 }
 

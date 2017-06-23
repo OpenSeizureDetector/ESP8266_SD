@@ -34,9 +34,9 @@ ADXL345_Vector f;
 // Write byte to register
 uint8_t ADXL345_writeRegister8(uint8_t reg, uint8_t value)
 {
-  if (i2c_slave_read(ADXL345_devAddr, &reg, &value, 1)) {
+  if (i2c_slave_write(ADXL345_devAddr, &reg, &value, 1)) {
     // non-zero response = error
-    //printf("ADXL345_writeRegister8(0x%x, 0x%x) - Error\n",devAddr,regAddr);
+    printf("ADXL345_writeRegister8(0x%x, 0x%x) - Error\n",ADXL345_devAddr,reg);
     return -1;
   } else {
     return value;
@@ -52,7 +52,7 @@ uint8_t ADXL345_readRegister8(uint8_t reg) {
   uint8_t byte;
   if (i2c_slave_read(ADXL345_devAddr, &reg, &byte, 1)) {
     // non-zero response = error
-    //printf("ADXL345_readRegister8(0x%x, 0x%x) - Error\n",devAddr,regAddr);
+    printf("ADXL345_readRegister8(0x%x, 0x%x) - Error\n",ADXL345_devAddr,reg);
     return -1;
   } else {
     return byte;
@@ -63,13 +63,15 @@ uint8_t ADXL345_readRegister8(uint8_t reg) {
 /* Reads a 2 byte word from the ADXL345 at address devAddr, register regAddr
  * @return: the word read, or -1 on error.
  */
-uint16_t ADXL345_readRegister16(uint8_t reg) {
-  uint16_t value;
-  if (i2c_slave_read(ADXL345_devAddr, &reg, (uint8_t*)&value, 2)) {
+int16_t ADXL345_readRegister16(uint8_t reg) {
+  int16_t value;
+  uint8_t bytes[2];
+  if (i2c_slave_read(ADXL345_devAddr, &reg, bytes, 2)) {
     // non-zero response = error
     //printf("ADXL345_readRegister8(0x%x, 0x%x) - Error\n",devAddr,reg);
     return -1;
   } else {
+    value = bytes[1]<<8 | bytes[0];
     return value;
   }
 }
@@ -135,17 +137,53 @@ uint8_t ADXL345_findDevice() {
 uint8_t ADXL345_init(int scl, int sda) {
   printf("ADXL345_init(%d,%d)\n",scl,sda);
   i2c_init(scl,sda);
-  ADXL345_devAddr = ADXL345_findDevice();
 
-  printf("ADXL345 found at address %x - initialising it for measurement\n",
+  ADXL345_devAddr = ADXL345_findDevice();
+  printf("ADXL345 found at address 0x%x\n",
 	 ADXL345_devAddr);
   
-  if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)) {
-    printf("Error setting measurement Mode\n");
+  //printf("Clearing Settings...\n");
+  //ADXL345_clearSettings();
+
+  //printf("Setting 13 bit mode\n");
+  //ADXL345_setRange(ADXL345_RANGE_2G);
+
+  //printf("Setting 2G range\n");
+  //ADXL345_setRange(ADXL345_RANGE_2G);
+
+  printf("Setting Data Format\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x0B)==-1) {
+    printf("*** Error setting Data Format ***\n");
   } else {
-    printf("Measurement Mode set\n");
+    printf("Data Format Set to 0x%02x\n",
+	   ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
   }
 
+  printf("Starting Measurement\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)==-1) {
+    printf("*** Error setting measurement Mode ***\n");
+  } else {
+    printf("Measurement Mode set to 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  }
+
+
+  printf("Enabling Interrupt\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
+    printf("*** Error enabling interrupt ***\n");
+  } else {
+    printf("Interrupt Enabled - set to 0x%02x\n",
+	   ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  }
+
+
+  printf("************************************\n");
+  printf("INT_SOURCE=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+  printf("BW_RATE=   0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
+  printf("DEV_ID=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
+  printf("INT_ENABLE=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("POWER_CTL= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  printf("************************************\n");
+  
   f.XAxis = 0;
   f.YAxis = 0;
   f.ZAxis = 0;
@@ -156,43 +194,6 @@ uint8_t ADXL345_init(int scl, int sda) {
 }
 
 
-/* read the X axis acceleration */
-uint16_t ADXL345_getXAcc() {
-  uint16_t xAcc;
-  printf("ADXL345_getXacc\n");
-  if ((xAcc = ADXL345_readRegister8(ADXL345_REG_DATAX0))==0xff) {
-    printf("Error reading accel\n");
-    return -1;
-  } else {
-    printf("Accel=%d\n",xAcc);
-  }
-  return xAcc;
-}
-
-
-
-
-
-/*bool ADXL345_begin()
-{
-    f.XAxis = 0;
-    f.YAxis = 0;
-    f.ZAxis = 0;
-
-
-    // Check ADXL345 REG DEVID
-    if (ADXL345_readRegister8(ADXL345_REG_DEVID) != 0xE5)
-    {
-        return false;
-    }
-
-    // Enable measurement mode (0b00001000)
-    ADXL345_writeRegister8(ADXL345_REG_POWER_CTL, 0x08);
-
-    clearSettings();
-
-    return true;
-    }*/
 
 // Set Range
 void ADXL345_setRange(ADXL345_range_t range)
@@ -242,9 +243,11 @@ ADXL345_Vector ADXL345_lowPassFilter(ADXL345_Vector vector, float alpha)
 ADXL345_Vector ADXL345_readRaw(void)
 {
   ADXL345_Vector r;
-  r.XAxis = ADXL345_readRegister16(ADXL345_REG_DATAX0);
-  r.YAxis = ADXL345_readRegister16(ADXL345_REG_DATAY0);
-  r.ZAxis = ADXL345_readRegister16(ADXL345_REG_DATAZ0);
+  int16_t val;
+  val = ADXL345_readRegister16(ADXL345_REG_DATAX0);
+  r.XAxis = val;
+  r.YAxis = (int16_t)ADXL345_readRegister16(ADXL345_REG_DATAY0);
+  r.ZAxis = (int16_t)ADXL345_readRegister16(ADXL345_REG_DATAZ0);
   return r;
 }
 
@@ -592,9 +595,9 @@ void ADXL345_useInterrupt(ADXL345_int_t interrupt)
     ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE, 0xFF);
 }
 
-Activites ADXL345_readActivites(void)
+ADXL345_Activites ADXL345_readActivites(void)
 {
-  Activites a;
+  ADXL345_Activites a;
   uint8_t data = ADXL345_readRegister8(ADXL345_REG_INT_SOURCE);
   
   a.isOverrun = ((data >> ADXL345_OVERRUN) & 1);
