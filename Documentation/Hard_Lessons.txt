@@ -1,0 +1,15 @@
+Hard Lessons in ESP8266 and ADXL345
+===================================
+
+...As learned during development of this project...
+
+1.  ESP8266 is system on a chip.  This is usually bought as part of a module on a PCB.   The ESP8266 GPIO numbers often bear no resemblance to the D0,D1 etc. numbers on the module PCB!! (See https://wiki.wemos.cc/products:d1:d1_mini as an example).
+
+2.  GPIOs 0, 2 and 15 are special and putting signals on them during boot can stop the device booting - Only use them as outputs to be safe!!! (http://www.forward.com.au/pfod/ESP8266/GPIOpins/index.html)
+
+3.  There are many programmin environments (SDKs) for ESP8266.  Sample code that
+works with one SDK is highly unlikely to work with another, so knowing which SDK the example is for is very important.
+
+4.  To avoid overloading the system with interrupts, it is good to have interrupts triggering on edges rather than pin values but if the ESP8266 boots with the interupt pin in the 'active' state, the interrupt will not fire (For example if the 'data ready' interrupt on the ADXL345 is present by the time the ESP8266 has initialised - avoid this by doing a manual read from the ESP8266 to clear any interupts following ESP8266 initialisation.
+
+5.  If you blow up an ADXL345 INT output, it is very hard to track down the fault because you think you have made a mistake in the software!  (I only spotted it by measuring the voltage and saw it was peculiar - neither high nor low...).

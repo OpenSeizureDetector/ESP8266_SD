@@ -196,7 +196,7 @@ void receiveAccelDataTask(void *pvParameters)
   gpio_enable(INTR_PIN, GPIO_INPUT);
   gpio_set_pullup(INTR_PIN, false, false);
   gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
-  //gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_LEVEL_LOW, gpio_intr_handler);
+  //gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_LEVEL_HIGH, gpio_intr_handler);
 
 
   // Put the axl345 into the correct mode of operation.
@@ -216,10 +216,17 @@ void receiveAccelDataTask(void *pvParameters)
     uint32_t data_ts;
     xQueueReceive(*tsqueue, &data_ts, portMAX_DELAY);
     data_ts *= portTICK_PERIOD_MS;
-    r = ADXL345_readRaw();
-    printf("receiveAccelDataTask: %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
-	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
 
+    int i=0;
+    bool finished = false;
+    while (!finished) {
+      r = ADXL345_readRaw();
+      i++;
+      printf("%d: receiveAccelDataTask: %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
+	     i,data_ts,r.XAxis,r.YAxis,r.ZAxis);
+      // has the interrupt input cleared yet?
+      finished = !gpio_read(INTR_PIN);
+    }
   }
 }
 
