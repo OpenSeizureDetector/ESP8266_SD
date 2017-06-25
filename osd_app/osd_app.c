@@ -81,20 +81,6 @@ void i2cScanTask(void *pvParameters) {
 
 
 
-void monitorAdxl345AccelTask(void *pvParameters) {
-  uint8_t devAddr;
-  ADXL345_Vector r;
-  
-  printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
-  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
-  printf("ADXL345 found at address 0x%x\n",devAddr);
-  
-  while(1) {
-    r = ADXL345_readRaw();
-    printf("r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",r.XAxis,r.YAxis,r.ZAxis);
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-  }
-}
 
 void gpio_intr_handler(uint8_t gpio_num)
 {
@@ -104,23 +90,127 @@ void gpio_intr_handler(uint8_t gpio_num)
 }
 
 
+void setup_adxl345() {
+  uint8_t devAddr;
+
+  printf("setup_adxl345()\n");
+  
+
+  // Initialise the ADXL345 i2c interface and search for the ADXL345
+  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
+  printf("ADXL345 found at address 0x%x\n",devAddr);
+
+  //printf("Clearing Settings...\n");
+  //ADXL345_clearSettings();
+
+  // Bypass the FIFO buffer
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,6,0);
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,7,0);
+
+  //printf("Setting 2G range\n");
+  //ADXL345_setRange(ADXL345_RANGE_2G);
+
+  //printf("Setting to 100Hz data rate\n");
+  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
+  ADXL345_setDataRate(ADXL345_DATARATE_1_56HZ);
+
+  /*printf("Setting Data Format - interupts active low.\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
+    printf("*** Error setting Data Format ***\n");
+  } else {
+    printf("Data Format Set to 0x%02x\n",
+  	   ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+  }
+  */
+  // Set to 4g range, interrupts active high.
+  ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x01);
+
+  printf("Starting Measurement\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)==-1) {
+    printf("*** Error setting measurement Mode ***\n");
+  } else {
+    printf("Measurement Mode set to 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  }
+
+
+  printf("Enabling Data Ready Interrupt\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
+    printf("*** Error enabling interrupt ***\n");
+  } else {
+    printf("Interrupt Enabled - set to 0x%02x\n",
+	   ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  }
+
+
+  printf("************************************\n");
+  printf("DEV_ID=     0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
+  printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+  printf("BW_RATE=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
+  printf("DATA_FORMAT=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+  printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
+  printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  printf("************************************\n");
+  
+
+
+}
+
+
+
+void monitorAdxl345Task(void *pvParameters) {
+  //uint8_t devAddr;
+  ADXL345_Vector r;
+  
+  //printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+  //setup_adxl345();
+
+  while(1) {
+    printf("*****************************************\n");
+    printf("*        Periodic Monitoring            *\n");
+    printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+    printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
+    printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+    printf("FIFO_STATUS= %d\n",ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS));
+    printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,gpio_read(INTR_PIN));
+    //for (int i=0;i<33;i++) {
+    r = ADXL345_readRaw();
+    printf("r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",r.XAxis,r.YAxis,r.ZAxis);
+    //}
+    printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+    printf("*****************************************\n");
+    vTaskDelay(3000 / portTICK_PERIOD_MS);
+  }
+}
+
+
 /* 
  *  based on button.c example in the esp-open-rtos sdk.
 */
 void receiveAccelDataTask(void *pvParameters)
 {
-  uint8_t devAddr;
   ADXL345_Vector r;
-  //uint32_t last = 0;
-  
-  printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
-  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
-  printf("ADXL345 found at address 0x%x\n",devAddr);
-  printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
-  QueueHandle_t *tsqueue = (QueueHandle_t *)pvParameters;
+  printf("receiveAccelDataTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+
   // Set the Interrupt pin to be an input.
   gpio_enable(INTR_PIN, GPIO_INPUT);
-  gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_NEG, gpio_intr_handler);
+  gpio_set_pullup(INTR_PIN, false, false);
+  gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
+  //gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_LEVEL_LOW, gpio_intr_handler);
+
+
+  // Put the axl345 into the correct mode of operation.
+  setup_adxl345();
+  r = ADXL345_readRaw();
+  printf("Initial Reading: r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
+	   r.XAxis,r.YAxis,r.ZAxis);
+
+  printf("Starting ADXL345 Monitoring task\n");
+  xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
+
+  
+  printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
+  QueueHandle_t *tsqueue = (QueueHandle_t *)pvParameters;
   
   while(1) {
     uint32_t data_ts;
@@ -130,12 +220,11 @@ void receiveAccelDataTask(void *pvParameters)
     printf("receiveAccelDataTask: %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
 	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
 
-    //if(last < button_ts-200) {
-    //  printf("Interrupt fired at %dms\r\n", button_ts);
-    //  last = button_ts;
-    //}
   }
 }
+
+
+
 
 void user_init(void)
 {
@@ -152,7 +241,7 @@ void user_init(void)
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 
 
-  //xTaskCreate(monitorAdxl345AccelTask,"monitorAdxl345Accel",256,NULL,2,NULL);
+  //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
 
   tsqueue = xQueueCreate(2, sizeof(uint32_t));
   xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask", 256, &tsqueue, 2, NULL);

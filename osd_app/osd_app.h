@@ -9,4 +9,4 @@
 
 #define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5
 #define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
-#define INTR_PIN (0) // Wemos D1 Mini D3 = GPIO0
+#define INTR_PIN (13) // Wemos D1 Mini D7 = GPI13
