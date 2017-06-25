@@ -152,10 +152,10 @@ uint8_t ADXL345_init(int scl, int sda) {
   ADXL345_setRange(ADXL345_RANGE_2G);
 
   printf("Setting to 100Hz data rate\n");
-  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
+  ADXL345_setDataRate(ADXL345_DATARATE_1_56HZ);
 
-  printf("Setting Data Format\n");
-  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x0B)==-1) {
+  printf("Setting Data Format - interupts active low.\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
     printf("*** Error setting Data Format ***\n");
   } else {
     printf("Data Format Set to 0x%02x\n",
@@ -170,7 +170,7 @@ uint8_t ADXL345_init(int scl, int sda) {
   }
 
 
-  printf("Enabling Interrupt\n");
+  printf("Enabling Data Ready Interrupt\n");
   if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
     printf("*** Error enabling interrupt ***\n");
   } else {
@@ -185,6 +185,7 @@ uint8_t ADXL345_init(int scl, int sda) {
   printf("BW_RATE=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
   printf("DATA_FORMAT=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
   printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
   printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
   printf("************************************\n");
   
@@ -243,7 +244,7 @@ ADXL345_Vector ADXL345_lowPassFilter(ADXL345_Vector vector, float alpha)
     return f;
 }
 
-// Read raw values
+// Read raw values 
 ADXL345_Vector ADXL345_readRaw(void)
 {
   ADXL345_Vector r;

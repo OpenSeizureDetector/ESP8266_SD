@@ -14,6 +14,8 @@
 
 void read_reg(int *result, uint8_t reg_addr);
 
+static QueueHandle_t tsqueue;
+
 //static QueueHandle_t mainqueue;
 
 
@@ -77,6 +79,8 @@ void i2cScanTask(void *pvParameters) {
   } 
 }
 
+
+
 void monitorAdxl345AccelTask(void *pvParameters) {
   uint8_t devAddr;
   ADXL345_Vector r;
@@ -92,6 +96,47 @@ void monitorAdxl345AccelTask(void *pvParameters) {
   }
 }
 
+void gpio_intr_handler(uint8_t gpio_num)
+{
+  //printf("ISR - GPIO_%d\n",gpio_num);
+  uint32_t now = xTaskGetTickCountFromISR();
+  xQueueSendToBackFromISR(tsqueue, &now, NULL);
+}
+
+
+/* 
+ *  based on button.c example in the esp-open-rtos sdk.
+*/
+void receiveAccelDataTask(void *pvParameters)
+{
+  uint8_t devAddr;
+  ADXL345_Vector r;
+  //uint32_t last = 0;
+  
+  printf("monitorAdxl345AccelTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
+  printf("ADXL345 found at address 0x%x\n",devAddr);
+  printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
+  QueueHandle_t *tsqueue = (QueueHandle_t *)pvParameters;
+  // Set the Interrupt pin to be an input.
+  gpio_enable(INTR_PIN, GPIO_INPUT);
+  gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_NEG, gpio_intr_handler);
+  
+  while(1) {
+    uint32_t data_ts;
+    xQueueReceive(*tsqueue, &data_ts, portMAX_DELAY);
+    data_ts *= portTICK_PERIOD_MS;
+    r = ADXL345_readRaw();
+    printf("receiveAccelDataTask: %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
+	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+
+    //if(last < button_ts-200) {
+    //  printf("Interrupt fired at %dms\r\n", button_ts);
+    //  last = button_ts;
+    //}
+  }
+}
+
 void user_init(void)
 {
   //uart_set_baud(0, 115200);
@@ -99,10 +144,18 @@ void user_init(void)
   // boot messages as the debug ones - otherwise the boot messages are mangled..
   uart_set_baud(0, 74880);
   printf("SDK version:%s\n", sdk_system_get_sdk_version());
+
   //mainqueue = xQueueCreate(10, sizeof(uint32_t));
   //xTaskCreate(task1, "tsk1", 256, &mainqueue, 2, NULL);
   //xTaskCreate(task2, "tsk2", 256, &mainqueue, 2, NULL);
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
-  xTaskCreate(monitorAdxl345AccelTask,"monitorAdxl345Accel",256,NULL,2,NULL);
+
+
+  //xTaskCreate(monitorAdxl345AccelTask,"monitorAdxl345Accel",256,NULL,2,NULL);
+
+  tsqueue = xQueueCreate(2, sizeof(uint32_t));
+  xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask", 256, &tsqueue, 2, NULL);
+
+
 }

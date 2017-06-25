@@ -231,7 +231,6 @@ bool ADXL345_readRegisterBit(uint8_t reg, uint8_t pos);
 
 // Function prototypes
 uint8_t ADXL345_init(int scl, int sca);
-uint16_t ADXL345_getXAcc();
 ADXL345_Vector ADXL345_readRaw();
 
 
