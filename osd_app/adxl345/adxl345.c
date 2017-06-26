@@ -149,7 +149,6 @@ uint8_t ADXL345_init(int scl, int sda) {
   f.YAxis = 0;
   f.ZAxis = 0;
 
-  
   printf("ADXL345_init() complete\n");
   return(ADXL345_devAddr);
 }
@@ -200,15 +199,29 @@ ADXL345_Vector ADXL345_lowPassFilter(ADXL345_Vector vector, float alpha)
     return f;
 }
 
-// Read raw values 
+// Read raw acceleration values
+// read all 12 bytes at once so it is compatible with
+// FIFO (otherwise finishing reading one axis value would pop the FIFO
 ADXL345_Vector ADXL345_readRaw(void)
 {
   ADXL345_Vector r;
-  int16_t val;
-  val = ADXL345_readRegister16(ADXL345_REG_DATAX0);
-  r.XAxis = val;
-  r.YAxis = (int16_t)ADXL345_readRegister16(ADXL345_REG_DATAY0);
-  r.ZAxis = (int16_t)ADXL345_readRegister16(ADXL345_REG_DATAZ0);
+  uint8_t bytes[6];
+  uint8_t reg;
+
+  reg = ADXL345_REG_DATAX0;
+
+  // read all 6 data bytes in one read operation.
+  if (i2c_slave_read(ADXL345_devAddr, &reg, bytes, 6)) {
+    // non-zero response = error
+    printf("ADXL345_readRaw - Error\n");
+    r.XAxis = 0;
+    r.YAxis = 0;
+    r.ZAxis = 0;
+  } else {
+    r.XAxis = (int16_t)(bytes[1]<<8 | bytes[0]);
+    r.YAxis = (int16_t)(bytes[3]<<8 | bytes[2]);
+    r.ZAxis = (int16_t)(bytes[5]<<8 | bytes[4]);
+  }
   return r;
 }
 
@@ -556,6 +569,31 @@ void ADXL345_useInterrupt(ADXL345_int_t interrupt)
     ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE, 0xFF);
 }
 
+
+/**
+ * getFifoCtl(void)
+ * returns the value of the FifoCtl register
+ */
+uint8_t ADXL345_getFifoCtl(void) {
+    return ADXL345_readRegister8(ADXL345_REG_FIFO_CTL);
+}
+
+/**
+ * setFifoCtl(ctlVal)
+ * Sets the value of the FifoCtl register to ctlVal.
+ */
+uint8_t ADXL345_setFifoCtl(uint8_t ctlVal) {
+  return ADXL345_writeRegister8(ADXL345_REG_FIFO_CTL,ctlVal);
+}
+
+/**
+ * getFifoStatus(void)
+ * returns the number of rows of data available in the FIFO buffer.
+ */
+uint8_t ADXL345_getFifoStatus(void) {
+    return ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS);
+}
+
 ADXL345_Activites ADXL345_readActivites(void)
 {
   ADXL345_Activites a;
@@ -580,5 +618,60 @@ ADXL345_Activites ADXL345_readActivites(void)
   a.isTapOnZ = ((data >> 0) & 1);
   
   return a;
+}
+
+
+
+/**
+ * enableFifo():
+ * Puts the FIFO into FIFO mode, disables the  DATA_READY intrrupt
+ * and enables the WATERMARK interrupt.
+ * WATERMARK is set to 30 samples.
+ */
+void ADXL345_enableFifo(void) {
+  uint8_t value;
+  // Put device into standby mode for programming it:
+  ADXL345_writeRegisterBit(ADXL345_REG_POWER_CTL,3,false);
+  // Enable FIFO Mode  FIFO_CTL register D6 and D7 = 01
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,7,false);
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,6,true);
+  // Enable watermark interrupt, disable data_ready interrupt
+  ADXL345_writeRegisterBit(ADXL345_REG_INT_ENABLE,ADXL345_WATERMARK,true);
+  ADXL345_writeRegisterBit(ADXL345_REG_INT_ENABLE,ADXL345_DATA_READY,false);
+
+  value = ADXL345_readRegister8(ADXL345_REG_FIFO_CTL);
+  // first zero the samples bits (bits 1-4)
+  value &= 0b11100000;
+  // Then set the samples bits (bits1-4) to 31 (0b00011111)
+  value |= 0b00011111;
+  
+  ADXL345_writeRegister8(ADXL345_REG_FIFO_CTL, value);
+
+  // Put device into measure mode:
+  ADXL345_writeRegisterBit(ADXL345_REG_POWER_CTL,3,true);
+
+  printf("************************************\n");
+  printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+  printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
+  printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  printf("FIFO_CTL=   0x%02x\n",ADXL345_readRegister8(ADXL345_REG_FIFO_CTL));
+  printf("************************************\n");
+
+
+}
+
+/**
+ * disableFifo():
+ * Puts the FIFO into bypass mode, enables the  DATA_READY intrrupt
+ * and disable the WATERMARK interrupt.
+ */
+void ADXL345_disableFifo(void) {
+  // Put FIFO into bypass Mode  FIFO_CTL register D6 and D7 = 00
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,7,false);
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,6,false);
+  // Disable watermark interrupt, enable data_ready interrupt.
+  ADXL345_writeRegisterBit(ADXL345_REG_INT_ENABLE,ADXL345_WATERMARK,false);
+  ADXL345_writeRegisterBit(ADXL345_REG_INT_ENABLE,ADXL345_DATA_READY,true);
 }
 
