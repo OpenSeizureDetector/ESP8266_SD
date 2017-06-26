@@ -218,9 +218,9 @@ ADXL345_IVector ADXL345_readRaw(void)
     r.YAxis = 0;
     r.ZAxis = 0;
   } else {
-    r.XAxis = (int16_t)(bytes[1]<<8 | bytes[0]);
-    r.YAxis = (int16_t)(bytes[3]<<8 | bytes[2]);
-    r.ZAxis = (int16_t)(bytes[5]<<8 | bytes[4]);
+    r.XAxis = (int16_t)(4*(bytes[1]<<8 | bytes[0]));
+    r.YAxis = (int16_t)(4*(bytes[3]<<8 | bytes[2]));
+    r.ZAxis = (int16_t)(4*(bytes[5]<<8 | bytes[4]));
   }
   return r;
 }
