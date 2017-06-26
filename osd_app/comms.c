@@ -167,8 +167,11 @@ void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 /***************************************************
  * Send some Seizure Detector Data to the phone app.
  */
-/*
+
 void sendSdData() {
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+}
+/*
   DictionaryIterator *iter;
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
   app_message_outbox_begin(&iter);

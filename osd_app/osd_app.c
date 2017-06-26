@@ -166,7 +166,64 @@ void monitorAdxl345Task(void *pvParameters) {
 }
 
 
-
+void AlarmCheckTask(void *pvParam) {
+  static int dataUpdateCount = 0;
+  static int lastAlarmState = 0;
+  printf("AlarmCheckTask() - running every second\n");
+  while(1) {
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    printf("AlarmCheckTask()...\n");
+    // Do FFT analysis if we have filled the buffer with data.
+    if (accDataFull) {
+      do_analysis();
+      if (fallActive) check_fall();  // sets fallDetected global variable.
+      // Check the alarm state, and set the global alarmState variable.
+      alarm_check();
+    
+      // If no seizure detected, modify alarmState to reflect potential fall
+      // detection
+      if ((alarmState == ALARM_STATE_OK) && (fallDetected==1))
+	alarmState = ALARM_STATE_FALL;
+    
+      //  Display alarm message on screen.
+      if (alarmState == ALARM_STATE_OK) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"OK\n");
+      }
+      if (alarmState == ALARM_STATE_WARN) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING\n");
+      }
+      if (alarmState == ALARM_STATE_ALARM) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"**ALARM**\n");
+      }
+      if (alarmState == ALARM_STATE_FALL) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"**FALL**\n");
+      }
+      if (isManAlarm) {
+	alarmState = ALARM_STATE_MAN_ALARM;
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"** MAN ALARM**\n");
+      }
+      if (isMuted) {
+	alarmState = ALARM_STATE_MUTE;
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"** MUTE **\n");
+      }    
+      
+      // Send data to phone if we have an alarm condition.
+      // or if alarm state has changed from last time.
+      if ((alarmState != ALARM_STATE_OK && !isMuted) ||
+	  (alarmState != lastAlarmState)) {
+	sendSdData();
+      }
+      lastAlarmState = alarmState;
+    }
+  
+    // See if it is time to send data to the phone.
+    dataUpdateCount++;
+    if (dataUpdateCount>=dataUpdatePeriod) {
+      sendSdData();
+      dataUpdateCount = 0;
+    } 
+  }
+}
 
 void LEDBlinkTask(void *pvParam) {
   printf("LEDBlinkTask()");
@@ -231,7 +288,7 @@ void receiveAccelDataTask(void *pvParameters)
   gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
 
   // Start the routine monitoring task
-  xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
+  //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
 
   while(1) {
     uint32_t data_ts;
@@ -254,9 +311,9 @@ void receiveAccelDataTask(void *pvParameters)
       if ((ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS)==0)
 	  || (i==ACC_BUF_LEN)) finished = 1;
     }
-    printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
-	   i,
-	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+    //printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+    //	   i,
+    //	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
     /*for (int n=0;n<i;n++) {
       printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
 	     n,
@@ -287,4 +344,6 @@ void user_init(void)
   tsqueue = xQueueCreate(2, sizeof(uint32_t));
   xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 	      256, &tsqueue, 2, NULL);
+  xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
+	      256, NULL, 2, NULL);
 }

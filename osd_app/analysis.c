@@ -121,7 +121,7 @@ int alarm_check() {
 void accel_handler(ADXL345_IVector *data, uint32_t num_samples) {
   int i;
 
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"accel_handler(): num_samples=%d",num_samples);
+  //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"accel_handler(): num_samples=%d",num_samples);
   if (sdMode==SD_MODE_RAW) {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%d",num_samples);
     sendRawData(data,num_samples);
@@ -132,7 +132,7 @@ void accel_handler(ADXL345_IVector *data, uint32_t num_samples) {
       if (accDataPos>=nSamp) { 
 	accDataPos = 0;
 	accDataFull = 1;
-	do_analysis();
+	//do_analysis();
 	break;
       }
       // add good data to the accData array
