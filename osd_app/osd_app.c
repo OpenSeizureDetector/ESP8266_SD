@@ -12,6 +12,8 @@
 
 #include "adxl345/adxl345.h"
 
+#define ACC_BUF_LEN 50
+
 void read_reg(int *result, uint8_t reg_addr);
 
 static QueueHandle_t tsqueue;
@@ -166,15 +168,17 @@ void gpio_intr_handler(uint8_t gpio_num)
 void receiveAccelDataTask(void *pvParameters)
 {
   ADXL345_IVector r;
+  ADXL345_IVector buf[ACC_BUF_LEN];
+  
   printf("receiveAccelDataTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
   setup_adxl345();
   ADXL345_enableFifo();
   printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
   QueueHandle_t *tsqueue = (QueueHandle_t *)pvParameters;
+
   // Set the Interrupt pin to be an input.
   gpio_enable(INTR_PIN, GPIO_INPUT);
   gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
-
 
   // Start the routine monitoring task
   xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
@@ -189,22 +193,28 @@ void receiveAccelDataTask(void *pvParameters)
     bool finished = false;
     while (!finished) {
       r = ADXL345_readRaw();
+      buf[i] = r;
       i++;
       //printf("%d:%d,  receiveAccelDataTask: %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
       //     i,
       //     ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS),
       //     data_ts,r.XAxis,r.YAxis,r.ZAxis);
       
-      // have we emptied the fifo yet?
-      finished = !ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS);
+      // have we emptied the fifo or filled our buffer yet?
+      if ((ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS)==0)
+	  || (i==ACC_BUF_LEN)) finished = 1;
     }
-  printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
-	 i,
-	 data_ts,r.XAxis,r.YAxis,r.ZAxis);
-
+    printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+	   i,
+	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+    /*for (int n=0;n<i;n++) {
+      printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
+	     n,
+	     buf[n].XAxis,buf[n].YAxis,buf[n].ZAxis);
+    }
+    */
   }
 }
-
 
 
 /**
