@@ -14,18 +14,71 @@
 
 #define ACC_BUF_LEN 50
 
-void read_reg(int *result, uint8_t reg_addr);
+/* GLOBAL VARIABLES */
+// Settings (obtained from default constants or persistent storage)
+int debug = DEBUG_DEFAULT;    // enable or disable logging output
+int sampleFreq = SAMPLE_FREQ_DEFAULT;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)
+int freqCutoff = FREQ_CUTOFF_DEFAULT;      // Frequency above which movement is ignored.
+int nFreqCutoff;     // Bin number of cutoff frequency.
+int samplePeriod = SAMPLE_PERIOD_DEFAULT;    // Sample period in seconds
+int nSamp;           // number of samples in sampling period
+                     //  (rounded up to a power of 2)
+int fftBits;         // size of fft data array (nSamp = 2^(fftBits))
+
+int dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT; // number of seconds between sending data to the phone.
+int sdMode = SD_MODE_DEFAULT;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
+//int sampleFreq;      // Sample frequency in Hz
+int alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;    // Bin number of lower boundary of region of interest
+int alarmFreqMax = ALARM_FREQ_MAX_DEFAULT;    // Bin number of higher boundary of region of interest
+int warnTime = WARN_TIME_DEFAULT;        // number of seconds above threshold to raise warning
+int alarmTime = ALARM_TIME_DEFAULT;       // number of seconds above threshold to raise alarm.
+int alarmThresh = ALARM_THRESH_DEFAULT;     // Alarm threshold (average power of spectrum within
+                     //       region of interest.
+int alarmRatioThresh = ALARM_RATIO_THRESH_DEFAULT;
+int nMax = 0;
+int nMin = 0;
+int nMins[4];
+int nMaxs[4];
+
+int fallActive = 0;     // fall detection active (0=inactive)
+int fallThreshMin = 0;  // fall detection minimum (lower) threshold (milli-g)
+int fallThreshMax = 0;  // fall detection maximum (upper) threshold (milli-g)
+int fallWindow = 0;     // fall detection window (milli-seconds).
+int fallDetected = 0;   // flag to say if fall is detected (<>0 is fall)
+
+int isManAlarm = 0;     // flag to say if a manual alarm has been raised.
+int manAlarmTime = 0;   // time (in sec) that manual alarm has been raised
+int manAlarmPeriod = 0; // time (in sec) that manual alarm is raised for
+
+int isMuted = 0;        // flag to say if alarms are muted.
+int muteTime = 0;       // time (in sec) that alarms have been muted.
+int mutePeriod = 0;     // Period for which alarms are muted (sec)
+
+ADXL345_IVector latestAccelData;  // Latest accelerometer readings received.
+int maxVal = 0;       // Peak amplitude in spectrum.
+int maxLoc = 0;       // Location in output array of peak.
+int maxFreq = 0;      // Frequency corresponding to peak location.
+long specPower = 0;   // Average power of whole spectrum.
+long roiPower = 0;    // Average power of spectrum in region of interest
+long roiPowers[4];
+int roiRatio = 0;     // 10xroiPower/specPower
+int roiRatios[4];
+int freqRes = 0;      // Actually 1000 x frequency resolution
+
+int alarmState = 0;    // 0 = OK, 1 = WARNING, 2 = ALARM
+int alarmRoi = 0;
+int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 
 static QueueHandle_t tsqueue;
 
-//static QueueHandle_t mainqueue;
-
-
+/**
+ * Initialise the ADXL345 accelerometer trip to use a FIFO buffer
+ * and send an interrupt when the FIFO is full.
+ */
 void setup_adxl345() {
   uint8_t devAddr;
 
   printf("setup_adxl345()\n");
-  
 
   // Initialise the ADXL345 i2c interface and search for the ADXL345
   devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
@@ -41,8 +94,8 @@ void setup_adxl345() {
   printf("Setting 4G range\n");
   ADXL345_setRange(ADXL345_RANGE_4G);
 
-  //printf("Setting to 100Hz data rate\n");
-  ADXL345_setDataRate(ADXL345_DATARATE_50HZ);
+  printf("Setting to 100Hz data rate\n");
+  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
   //ADXL345_setDataRate(ADXL345_DATARATE_12_5HZ);
 
   /*printf("Setting Data Format - interupts active low.\n");
@@ -83,10 +136,7 @@ void setup_adxl345() {
   printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
   printf("************************************\n");
   
-
-
 }
-
 
 
 /**
@@ -213,6 +263,8 @@ void receiveAccelDataTask(void *pvParameters)
 	     buf[n].XAxis,buf[n].YAxis,buf[n].ZAxis);
     }
     */
+    // Call the acceleration handler in analysis.c
+    accel_handler(buf,i);
   }
 }
 
@@ -229,6 +281,8 @@ void user_init(void)
 
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
+
+  analysis_init();
 
   tsqueue = xQueueCreate(2, sizeof(uint32_t));
   xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
