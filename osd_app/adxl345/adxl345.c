@@ -149,7 +149,8 @@ uint8_t ADXL345_init(int scl, int sda) {
   ADXL345_setRange(ADXL345_RANGE_2G);
 
   printf("Setting to 100Hz data rate\n");
-  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
+  //ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
+  ADXL345_setDataRate(ADXL345_DATARATE_3_13HZ);
 
   printf("Setting Data Format - interupts active low.\n");
   if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {

@@ -133,11 +133,6 @@ void receiveAccelDataTask(void *pvParameters)
 	   //ADXL345_readRegister8(ADXL345_REG_INT_SOURCE),
 	   0x00,
 	   r.XAxis,r.YAxis,r.ZAxis);
-
-    //if(last < button_ts-200) {
-    //  printf("Interrupt fired at %dms\r\n", button_ts);
-    //  last = button_ts;
-    //}
   }
 }
 
