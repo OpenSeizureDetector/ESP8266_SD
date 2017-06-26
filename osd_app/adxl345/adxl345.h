@@ -82,6 +82,16 @@ typedef struct
 } ADXL345_Vector;
 #endif
 
+#ifndef IVECTOR_STRUCT_H
+#define IVECTOR_STRUCT_H
+typedef struct 
+{
+  int16_t XAxis;
+  int16_t YAxis;
+  int16_t ZAxis;
+} ADXL345_IVector;
+#endif
+
 typedef enum
 {
     ADXL345_DATARATE_3200HZ    = 0b1111,
@@ -150,7 +160,7 @@ typedef struct
 //bool ADXL345_begin(void);
 void ADXL345_clearSettings(void);
 
-ADXL345_Vector ADXL345_readRaw(void);
+ADXL345_IVector ADXL345_readRaw(void);
 ADXL345_Vector ADXL345_readNormalize(float gravityFactor);
 ADXL345_Vector ADXL345_readScaled(void);
 
@@ -235,7 +245,6 @@ bool ADXL345_readRegisterBit(uint8_t reg, uint8_t pos);
 
 // Function prototypes
 uint8_t ADXL345_init(int scl, int sca);
-ADXL345_Vector ADXL345_readRaw();
 
 
 #endif

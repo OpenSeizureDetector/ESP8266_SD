@@ -202,9 +202,9 @@ ADXL345_Vector ADXL345_lowPassFilter(ADXL345_Vector vector, float alpha)
 // Read raw acceleration values
 // read all 12 bytes at once so it is compatible with
 // FIFO (otherwise finishing reading one axis value would pop the FIFO
-ADXL345_Vector ADXL345_readRaw(void)
+ADXL345_IVector ADXL345_readRaw(void)
 {
-  ADXL345_Vector r;
+  ADXL345_IVector r;
   uint8_t bytes[6];
   uint8_t reg;
 
@@ -228,7 +228,7 @@ ADXL345_Vector ADXL345_readRaw(void)
 // Read normalized values
 ADXL345_Vector ADXL345_readNormalize(float gravityFactor)
 {
-  ADXL345_Vector r;
+  ADXL345_IVector r;
   ADXL345_Vector n;
   r = ADXL345_readRaw();
 
@@ -243,7 +243,7 @@ ADXL345_Vector ADXL345_readNormalize(float gravityFactor)
 // Read scaled values
 ADXL345_Vector ADXL345_readScaled(void)
 {
-  ADXL345_Vector r;
+  ADXL345_IVector r;
   ADXL345_Vector n;
   r = ADXL345_readRaw();
 

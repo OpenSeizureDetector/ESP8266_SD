@@ -93,7 +93,7 @@ void setup_adxl345() {
  * this task is started.
  */
 void monitorAdxl345Task(void *pvParameters) {
-  ADXL345_Vector r;
+  ADXL345_IVector r;
   
   while(1) {
     printf("*****************************************\n");
@@ -105,7 +105,7 @@ void monitorAdxl345Task(void *pvParameters) {
     printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,gpio_read(INTR_PIN));
     //for (int i=0;i<33;i++) {
     r = ADXL345_readRaw();
-    printf("r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",r.XAxis,r.YAxis,r.ZAxis);
+    printf("r.x=%7d, r.y=%7d, r.z=%7d\n",r.XAxis,r.YAxis,r.ZAxis);
     //}
     printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
     printf("*****************************************\n");
@@ -165,7 +165,7 @@ void gpio_intr_handler(uint8_t gpio_num)
 */
 void receiveAccelDataTask(void *pvParameters)
 {
-  ADXL345_Vector r;
+  ADXL345_IVector r;
   printf("receiveAccelDataTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
   setup_adxl345();
   ADXL345_enableFifo();
@@ -190,7 +190,7 @@ void receiveAccelDataTask(void *pvParameters)
     while (!finished) {
       r = ADXL345_readRaw();
       i++;
-      //printf("%d:%d,  receiveAccelDataTask: %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
+      //printf("%d:%d,  receiveAccelDataTask: %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
       //     i,
       //     ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS),
       //     data_ts,r.XAxis,r.YAxis,r.ZAxis);
@@ -198,7 +198,7 @@ void receiveAccelDataTask(void *pvParameters)
       // have we emptied the fifo yet?
       finished = !ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS);
     }
-  printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7.0f, r.y=%7.0f, r.z=%7.0f\n",
+  printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
 	 i,
 	 data_ts,r.XAxis,r.YAxis,r.ZAxis);
 
