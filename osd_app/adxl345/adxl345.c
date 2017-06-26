@@ -142,56 +142,6 @@ uint8_t ADXL345_init(int scl, int sda) {
   printf("ADXL345 found at address 0x%x\n",
 	 ADXL345_devAddr);
   
-  //printf("Clearing Settings...\n");
-  //ADXL345_clearSettings();
-
-  printf("Setting 2G range\n");
-  ADXL345_setRange(ADXL345_RANGE_2G);
-
-  printf("Setting to 100Hz data rate\n");
-  //ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
-  ADXL345_setDataRate(ADXL345_DATARATE_3_13HZ);
-
-  printf("Setting Data Format - interupts active low.\n");
-  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
-    printf("*** Error setting Data Format ***\n");
-  } else {
-    printf("Data Format Set to 0x%02x\n",
-	   ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
-  }
-
-  printf("Starting Measurement\n");
-  if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)==-1) {
-    printf("*** Error setting measurement Mode ***\n");
-  } else {
-    printf("Measurement Mode set to 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
-  }
-
-
-  printf("Enabling Data Ready Interrupt\n");
-  if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
-    printf("*** Error enabling interrupt ***\n");
-  } else {
-    printf("Interrupt Enabled - set to 0x%02x\n",
-	   ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
-  }
-
-
-  printf("************************************\n");
-  printf("DEV_ID=     0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
-  printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
-  printf("BW_RATE=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
-  printf("DATA_FORMAT=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
-  printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
-  printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
-  printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
-  printf("************************************\n");
-  
-  f.XAxis = 0;
-  f.YAxis = 0;
-  f.ZAxis = 0;
-
-  
   printf("ADXL345_init() complete\n");
   return(ADXL345_devAddr);
 }
