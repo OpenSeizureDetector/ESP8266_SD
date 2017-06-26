@@ -217,6 +217,10 @@ void ADXL345_setTapDetectionXYZ(bool state);
 
 void ADXL345_useInterrupt(ADXL345_int_t interrupt);
 
+void ADXL345_enableFifo(void);
+uint8_t ADXL345_getFifoStatus(void);
+uint8_t ADXL345_getFifoCtl(void);
+uint8_t ADXL345_setFifoCtl(uint8_t ctlVal);
 
 uint8_t ADXL345_writeRegister8(uint8_t reg, uint8_t value);
 uint8_t ADXL345_readRegister8(uint8_t reg);
