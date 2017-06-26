@@ -1,0 +1,31 @@
+ESP8266_SD Development Plan
+===========================
+
+I intend to develop an ESP8266 based seizure detector in a staged way,
+testing the feasibility of continuing at each stage.
+
+The basic idea is that we will have an ESP8266 system-on-chip module
+connected to an ADXL345 accelerometer using an i2c interface.
+The data collection, analysis and seizure detection will take place on
+the ESP8266 in the same way as the Pebble OpenSeizureDetector works.
+The ESP8266 will act as a NetworkDatasource for the OpenSeizureDetector
+Android device based alarm system.
+
+The hardware will be mounted in a wrist mounted, 3d printed case that
+also contains a rechargable battery.
+
+The development stages are:
+1.  Feasibility Study - can we program an ESP8266, can we make it talk
+    to the ADXL345 and can it run the OpenSeizureDetector detection
+    algorithm.   If we can not do this, the project is a non-starter.
+
+2.  Proof-of-Concept - Develop the system into a functioning seizure
+    detector that connects to the OpenSeizureDetector Android based alarm
+    system, and investigate power consumption.   Can we get the power
+    consumption down to a level where it will run for over 12 hours on
+    a single battery charge?   Again, if not, there is no point in
+    developing further.
+
+3.  Prototype - hand assembled minature hardware - use an ESP8266 E12
+    module with a discrete ADXL345 to make it small enough to fit in
+    a watch case.  Produce 3d printed watch case
