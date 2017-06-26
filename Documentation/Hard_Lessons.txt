@@ -12,4 +12,4 @@ works with one SDK is highly unlikely to work with another, so knowing which SDK
 
 4.  To avoid overloading the system with interrupts, it is good to have interrupts triggering on edges rather than pin values but if the ESP8266 boots with the interupt pin in the 'active' state, the interrupt will not fire (For example if the 'data ready' interrupt on the ADXL345 is present by the time the ESP8266 has initialised - avoid this by doing a manual read from the ESP8266 to clear any interupts following ESP8266 initialisation.
 
-5.  If you blow up an ADXL345 INT output, it is very hard to track down the fault because you think you have made a mistake in the software!  (I only spotted it by measuring the voltage and saw it was peculiar - neither high nor low...).
+5.  If you blow up an ADXL345 INT output, it is very hard to track down the fault because you think you have made a mistake in the software!  (I only spotted it by measuring the voltage and saw it was peculiar - neither high nor low...).  The rest of the chip was working ok, but no interrupts generated.
