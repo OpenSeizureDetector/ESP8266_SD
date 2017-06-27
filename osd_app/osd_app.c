@@ -346,4 +346,6 @@ void user_init(void)
 	      256, &tsqueue, 2, NULL);
   xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
 	      256, NULL, 2, NULL);
+
+  httpd_init();
 }
