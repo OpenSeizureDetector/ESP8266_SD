@@ -12,6 +12,7 @@
 #include <task.h>
 #include <ssid_config.h>
 #include <httpd/httpd.h>
+#include "osd_app.h"
 
 #define LED_PIN 2
 
@@ -24,27 +25,28 @@ enum {
 
 char *gpio_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
 {
-    for (int i = 0; i < iNumParams; i++) {
-        if (strcmp(pcParam[i], "on") == 0) {
-            uint8_t gpio_num = atoi(pcValue[i]);
-            gpio_enable(gpio_num, GPIO_OUTPUT);
-            gpio_write(gpio_num, true);
-        } else if (strcmp(pcParam[i], "off") == 0) {
-            uint8_t gpio_num = atoi(pcValue[i]);
-            gpio_enable(gpio_num, GPIO_OUTPUT);
-            gpio_write(gpio_num, false);
-        } else if (strcmp(pcParam[i], "toggle") == 0) {
-            uint8_t gpio_num = atoi(pcValue[i]);
-            gpio_enable(gpio_num, GPIO_OUTPUT);
-            gpio_toggle(gpio_num);
-        }
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"gpio_cgi_handler\n");
+  for (int i = 0; i < iNumParams; i++) {
+    if (strcmp(pcParam[i], "on") == 0) {
+      uint8_t gpio_num = atoi(pcValue[i]);
+      gpio_enable(gpio_num, GPIO_OUTPUT);
+      gpio_write(gpio_num, true);
+    } else if (strcmp(pcParam[i], "off") == 0) {
+      uint8_t gpio_num = atoi(pcValue[i]);
+      gpio_enable(gpio_num, GPIO_OUTPUT);
+      gpio_write(gpio_num, false);
+    } else if (strcmp(pcParam[i], "toggle") == 0) {
+      uint8_t gpio_num = atoi(pcValue[i]);
+      gpio_enable(gpio_num, GPIO_OUTPUT);
+      gpio_toggle(gpio_num);
     }
-    return "/index.ssi";
+  }
+  return "/index.html";
 }
 
 char *about_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
 {
-    return "/about.html";
+    return "/index.html";
 }
 
 
@@ -55,12 +57,6 @@ void httpd_task(void *pvParameters)
         {"/about", (tCGIHandler) about_cgi_handler},
     };
 
-    const char *pcConfigSSITags[] = {
-        "uptime", // SSI_UPTIME
-        "heap",   // SSI_FREE_HEAP
-        "led"     // SSI_LED_STATE
-    };
-
     /* register handlers and start the server */
     http_set_cgi_handlers(pCGIs, sizeof (pCGIs) / sizeof (pCGIs[0]));
     httpd_init();
@@ -68,9 +64,10 @@ void httpd_task(void *pvParameters)
     for (;;);
 }
 
-void httpd_init(void)
+void httpd_server_init(void)
 {
-    struct sdk_station_config config = {
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_server_init()\n");
+  struct sdk_station_config config = {
         .ssid = WIFI_SSID,
         .password = WIFI_PASS,
     };

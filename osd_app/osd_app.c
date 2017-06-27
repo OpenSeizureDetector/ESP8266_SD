@@ -347,5 +347,5 @@ void user_init(void)
   xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
 	      256, NULL, 2, NULL);
 
-  httpd_init();
+  httpd_server_init();
 }

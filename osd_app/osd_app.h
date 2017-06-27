@@ -238,4 +238,4 @@ void check_fall();
 int getAmpl(int nBin);
 
 // from http_server.c
-void httpd_init();
+void httpd_server_init();

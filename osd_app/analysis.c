@@ -257,8 +257,15 @@ void do_analysis() {
   }
   // roiPower is average power per bin within ROI.
   roiPower = roiPower/(nMax-nMin);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower=%ld",roiPower);
-  roiRatio = 10 * roiPower/specPower;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld, roiPower=%ld",
+		     specPower, roiPower);
+  if  (specPower!=0) {
+    roiRatio = 10 * roiPower/specPower;
+  } else {
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING: specPower=%ld, setting ratio to zero",
+		     specPower);
+    roiRatio = 0;
+  }
 
   // calculate spectrum power in each of the regions of interest
   // for multi-ROI mode.
@@ -270,7 +277,10 @@ void do_analysis() {
     }
     // roiPower is average power per bin within ROI.
     roiPowers[n] = roiPowers[n]/(nMaxs[n]-nMins[n]);
-    roiRatios[n] = 10 * roiPowers[n]/specPower;
+    if (specPower!=0)
+      roiRatios[n] = 10 * roiPowers[n]/specPower;
+    else
+      roiRatios[n] = 0;
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower[%d]=%ld",n,roiPowers[n]);
   }
   
