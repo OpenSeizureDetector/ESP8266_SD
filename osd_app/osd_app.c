@@ -172,7 +172,7 @@ void AlarmCheckTask(void *pvParam) {
   printf("AlarmCheckTask() - running every second\n");
   while(1) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    printf("AlarmCheckTask()...\n");
+    //printf("AlarmCheckTask()...\n");
     // Do FFT analysis if we have filled the buffer with data.
     if (accDataFull) {
       do_analysis();

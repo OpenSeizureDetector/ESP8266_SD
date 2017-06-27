@@ -46,22 +46,24 @@ char *gpio_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValu
 
 char *about_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
 {
-    return "/index.html";
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"about_cgi_handler()\n");
+  return "/index.html";
 }
 
 
 void httpd_task(void *pvParameters)
 {
-    tCGI pCGIs[] = {
-        {"/gpio", (tCGIHandler) gpio_cgi_handler},
-        {"/about", (tCGIHandler) about_cgi_handler},
-    };
-
-    /* register handlers and start the server */
-    http_set_cgi_handlers(pCGIs, sizeof (pCGIs) / sizeof (pCGIs[0]));
-    httpd_init();
-
-    for (;;);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_task()\n");
+  tCGI pCGIs[] = {
+    {"/gpio", (tCGIHandler) gpio_cgi_handler},
+    {"/about", (tCGIHandler) about_cgi_handler},
+  };
+  
+  /* register handlers and start the server */
+  http_set_cgi_handlers(pCGIs, sizeof (pCGIs) / sizeof (pCGIs[0]));
+  httpd_init();
+  
+  for (;;);
 }
 
 void httpd_server_init(void)
