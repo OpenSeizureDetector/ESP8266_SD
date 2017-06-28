@@ -50,11 +50,18 @@ char *about_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcVal
   return "/index.html";
 }
 
+char *data_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
+{
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"data_cgi_handler()\n");
+  return "{'key':'val'}";
+}
+
 
 void httpd_task(void *pvParameters)
 {
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_task()\n");
   tCGI pCGIs[] = {
+    {"/data", (tCGIHandler) data_cgi_handler},
     {"/gpio", (tCGIHandler) gpio_cgi_handler},
     {"/about", (tCGIHandler) about_cgi_handler},
   };
