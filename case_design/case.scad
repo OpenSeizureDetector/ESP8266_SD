@@ -2,7 +2,7 @@ Bx=30;     //battery size
 By=20;
 Bz=3;
 
-Cx=35;     //circuit size
+Cx=34.5;     //circuit size
 Cy=26;
 Cz=3;
 
