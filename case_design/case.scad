@@ -1,17 +1,17 @@
-Bx=25;     //battery size
-By=15;
+Bx=30;     //battery size
+By=20;
 Bz=3;
 
-Cx=25;     //circuit size
-Cy=15;
+Cx=35;     //circuit size
+Cy=26;
 Cz=3;
 
 b=3;    //border width
 r=2;    //radius of curvature
 
-x=Bx+(2*b);    //case size
-y=By+(2*b);
-z=Bz+Cz+b;
+x=Cx+(2*b);    //case size
+y=Cy+(2*b);
+z=Cz+Bz+b;
 
 intersection() {
     difference() {
@@ -26,7 +26,8 @@ intersection() {
             translate([x-(2*r),y-(2*r),z-r]) sphere(r);
         }
 
-        translate([b,b,b]) cube([Bx,By,Bz+Cz+2]);
+        translate([b,b,b]) cube([Bx,By,Bz+0.1]);
+        translate([b,b,b+Bz]) cube([Cx,Cy,Cz+0.1]);
     
     }
     cube([x,y,z]);
