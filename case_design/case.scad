@@ -11,23 +11,23 @@ r=2;    //radius of curvature
 
 x=Bx+(2*b);    //case size
 y=By+(2*b);
-z=Bz+Cz+b+r;
+z=Bz+Cz+b;
 
 intersection() {
     difference() {
-        hull() {
-            translate([r,r,r]) sphere(r);
-            translate([x-r,r,r]) sphere(r);
-            translate([r,y-r,r]) sphere(r);
-            translate([r,r,z-r]) sphere(r);
-            translate([x-r,y-r,r]) sphere(r);
-            translate([x-r,r,z-r]) sphere(r);
-            translate([r,y-r,z-r]) sphere(r);
-            translate([x-r,y-r,z-r]) sphere(r);
+        translate([r,r,r]) hull() {
+            sphere(r);
+            translate([x-(2*r),0,0]) sphere(r);
+            translate([0,y-(2*r),0]) sphere(r);
+            translate([0,0,z-r]) sphere(r);
+            translate([x-(2*r),y-(2*r),0]) sphere(r);
+            translate([x-(2*r),0,z-r]) sphere(r);
+            translate([0,y-(2*r),z-r]) sphere(r);
+            translate([x-(2*r),y-(2*r),z-r]) sphere(r);
         }
 
         translate([b,b,b]) cube([Bx,By,Bz+Cz+2]);
     
     }
-    cube([x,y,z-r]);
+    cube([x,y,z]);
 }
