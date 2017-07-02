@@ -1,0 +1,37 @@
+drop table if exists  users;
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created DATETIME,
+    modified DATETIME
+);
+
+drop table if exists risks;
+create table risks (
+       id INTEGER PRIMARY KEY,
+       riskNo varchar(7),
+       type varchar(3),
+       status integer,
+       parent integer,
+       bu varchar(3),
+       epri varchar(10),
+       title varchar(100),
+       data blob,
+       created DATETIME,
+       modified DATETIME
+);
+
+
+drop table if exists mitigations;
+create table mitigations (
+       id INTEGER PRIMARY KEY,
+       parent integer,
+       mitNo varchar(15),
+       status integer,
+       title varchar(100),
+       data blob,
+       created DATETIME,
+       modified DATETIME
+);
+

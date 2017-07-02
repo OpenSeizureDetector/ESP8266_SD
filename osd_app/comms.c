@@ -25,9 +25,116 @@
  * along with ESP8266_SD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/netdb.h"
+#include "lwip/dns.h"
+
+#include "private_ssid_config.h"
+
 #include "osd_app.h"
 void sendSettings();
 void sendFftSpec();
+
+
+#define WEB_SERVER "chainxor.org"
+#define WEB_IPADDR "192.168.43.77"
+#define WEB_PORT 8080
+#define WEB_URL "http://chainxor.org/"
+
+
+
+/***************************************************
+ * Send some Seizure Detector Data to the phone app.
+ */
+
+void sendSdData() {
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+
+  const struct addrinfo hints = {
+    .ai_family = AF_INET,
+    .ai_socktype = SOCK_STREAM,
+  };
+  struct addrinfo *res;
+  struct in_addr ipaddr;
+  
+  ipaddr.s_addr = ipaddr_addr(WEB_IPADDR);
+  printf("processed IP Address = %s\n", ipaddr_ntoa(&ipaddr));
+  /* Note: inet_ntoa is non-reentrant, look at ipaddr_ntoa_r for "real" code */
+  struct in_addr *addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
+  printf("DNS lookup succeeded. IP=%s\r\n", inet_ntoa(*addr));
+
+        int s = socket(res->ai_family, res->ai_socktype, 0);
+        if(s < 0) {
+            printf("... Failed to allocate socket.\r\n");
+            freeaddrinfo(res);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+        }
+
+        printf("... allocated socket\r\n");
+
+        if(connect(s, res->ai_addr, res->ai_addrlen) != 0) {
+            close(s);
+            freeaddrinfo(res);
+            printf("... socket connect failed.\r\n");
+            vTaskDelay(4000 / portTICK_PERIOD_MS);
+        }
+
+        printf("... connected\r\n");
+        freeaddrinfo(res);
+
+        const char *req =
+            "GET "WEB_URL"\r\n"
+            "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
+            "\r\n";
+        if (write(s, req, strlen(req)) < 0) {
+            printf("... socket send failed\r\n");
+            close(s);
+            vTaskDelay(4000 / portTICK_PERIOD_MS);
+        }
+        printf("... socket send success\r\n");
+
+        static char recv_buf[128];
+        int r;
+        do {
+            bzero(recv_buf, 128);
+            r = read(s, recv_buf, 127);
+            if(r > 0) {
+                printf("%s", recv_buf);
+            }
+        } while(r > 0);
+
+        printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
+        close(s);
+
+
+}
+/*
+  DictionaryIterator *iter;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+  app_message_outbox_begin(&iter);
+  dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RESULTS);
+  dict_write_uint8(iter,KEY_ALARMSTATE,(uint8_t)alarmState);
+  dict_write_uint32(iter,KEY_MAXVAL,(uint32_t)maxVal);
+  dict_write_uint32(iter,KEY_MAXFREQ,(uint32_t)maxFreq);
+  dict_write_uint32(iter,KEY_SPECPOWER,(uint32_t)specPower);
+  dict_write_uint32(iter,KEY_ROIPOWER,(uint32_t)roiPower);
+  dict_write_uint32(iter,KEY_ALARM_ROI,(uint32_t)alarmRoi);
+  // Send simplified spectrum - just 10 integers so it fits in a message.
+  dict_write_data(iter,KEY_SPEC_DATA,(uint8_t*)(&simpleSpec[0]),
+		  10*sizeof(simpleSpec[0]));
+  app_message_outbox_send();
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
+}
+*/
+
+
 
 
 /*************************************************************
@@ -161,32 +268,6 @@ void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reaso
 
 void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
   if (debug) APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
-}
-*/
-
-/***************************************************
- * Send some Seizure Detector Data to the phone app.
- */
-
-void sendSdData() {
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
-}
-/*
-  DictionaryIterator *iter;
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
-  app_message_outbox_begin(&iter);
-  dict_write_uint8(iter,KEY_DATA_TYPE,(uint8_t)DATA_TYPE_RESULTS);
-  dict_write_uint8(iter,KEY_ALARMSTATE,(uint8_t)alarmState);
-  dict_write_uint32(iter,KEY_MAXVAL,(uint32_t)maxVal);
-  dict_write_uint32(iter,KEY_MAXFREQ,(uint32_t)maxFreq);
-  dict_write_uint32(iter,KEY_SPECPOWER,(uint32_t)specPower);
-  dict_write_uint32(iter,KEY_ROIPOWER,(uint32_t)roiPower);
-  dict_write_uint32(iter,KEY_ALARM_ROI,(uint32_t)alarmRoi);
-  // Send simplified spectrum - just 10 integers so it fits in a message.
-  dict_write_data(iter,KEY_SPEC_DATA,(uint8_t*)(&simpleSpec[0]),
-		  10*sizeof(simpleSpec[0]));
-  app_message_outbox_send();
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sent Results");
 }
 */
 
