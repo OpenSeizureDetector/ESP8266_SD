@@ -1,13 +1,4 @@
-Bx=30;     //battery size
-By=20;
-Bz=3;
-
-Cx=34.5;     //circuit size
-Cy=26;
-Cz=3;
-
-b=3;    //border width
-r=2;    //radius of curvature
+include <dimensions.scad>;
 
 x=Cx+(2*b);    //case size
 y=Cy+(2*b);
@@ -28,7 +19,9 @@ intersection() {
 
         translate([b,b,b]) cube([Bx,By,Bz+0.1]);
         translate([b,b,b+Bz]) cube([Cx,Cy,Cz+0.1]);
+        translate([-0.1,b+9.5,b+Bz]) cube([b+0.2,7.5,2]);
     
     }
     cube([x,y,z]);
 }
+
