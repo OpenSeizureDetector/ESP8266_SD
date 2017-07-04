@@ -238,7 +238,7 @@ void check_fall();
 int getAmpl(int nBin);
 
 // from http_server.c
-void httpd_server_init();
+void httpd_task(void *pvParameters);
 
 // from settings.c
 void settings_init();

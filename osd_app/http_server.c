@@ -60,6 +60,22 @@ char *data_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValu
 void httpd_task(void *pvParameters)
 {
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_task()\n");
+  
+  struct sdk_station_config config = {
+    .ssid = WIFI_SSID,
+    .password = WIFI_PASS,
+  };
+  
+  /* required to call wifi_set_opmode before station_set_config */
+  sdk_wifi_set_opmode(STATION_MODE);
+  sdk_wifi_station_set_config(&config);
+  sdk_wifi_station_connect();
+  
+  /* turn off LED */
+  gpio_enable(LED_PIN, GPIO_OUTPUT);
+  gpio_write(LED_PIN, true);
+  
+
   tCGI pCGIs[] = {
     {"/data", (tCGIHandler) data_cgi_handler},
     {"/gpio", (tCGIHandler) gpio_cgi_handler},
@@ -73,23 +89,4 @@ void httpd_task(void *pvParameters)
   for (;;);
 }
 
-void httpd_server_init(void)
-{
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_server_init()\n");
-  struct sdk_station_config config = {
-        .ssid = WIFI_SSID,
-        .password = WIFI_PASS,
-    };
 
-    /* required to call wifi_set_opmode before station_set_config */
-    sdk_wifi_set_opmode(STATION_MODE);
-    sdk_wifi_station_set_config(&config);
-    sdk_wifi_station_connect();
-
-    /* turn off LED */
-    gpio_enable(LED_PIN, GPIO_OUTPUT);
-    gpio_write(LED_PIN, true);
-
-    /* initialize tasks */
-    xTaskCreate(&httpd_task, "HTTP Daemon", 128, NULL, 2, NULL);
-}

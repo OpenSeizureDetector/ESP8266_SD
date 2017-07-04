@@ -172,7 +172,7 @@ void AlarmCheckTask(void *pvParam) {
   printf("AlarmCheckTask() - running every second\n");
   while(1) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //printf("AlarmCheckTask()...\n");
+    printf("AlarmCheckTask() - heap=%d.\n", xPortGetFreeHeapSize());
     // Do FFT analysis if we have filled the buffer with data.
     if (accDataFull) {
       do_analysis();
@@ -349,5 +349,6 @@ void user_init(void)
   xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
 	      256, NULL, 2, NULL);
 
-  //httpd_server_init();
+  xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);
+  
 }
