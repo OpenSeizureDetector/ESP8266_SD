@@ -239,3 +239,8 @@ int getAmpl(int nBin);
 
 // from http_server.c
 void httpd_server_init();
+
+// from settings.c
+void settings_init();
+void read_settings();
+void save_settings();

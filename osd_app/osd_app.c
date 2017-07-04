@@ -339,6 +339,8 @@ void user_init(void)
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 
+  settings_init();
+  comms_init();
   analysis_init();
 
   tsqueue = xQueueCreate(2, sizeof(uint32_t));
@@ -347,5 +349,5 @@ void user_init(void)
   xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
 	      256, NULL, 2, NULL);
 
-  httpd_server_init();
+  //httpd_server_init();
 }

@@ -36,6 +36,10 @@
 #include "lwip/netdb.h"
 #include "lwip/dns.h"
 
+#include "spiffs.h"
+#include "esp_spiffs.h"
+
+
 #include "private_ssid_config.h"
 
 #include "osd_app.h"
@@ -67,6 +71,7 @@ void sendSdData() {
   ipaddr.s_addr = ipaddr_addr(WEB_IPADDR);
   printf("processed IP Address = %s\n", ipaddr_ntoa(&ipaddr));
   /* Note: inet_ntoa is non-reentrant, look at ipaddr_ntoa_r for "real" code */
+  /*
   struct in_addr *addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
   printf("DNS lookup succeeded. IP=%s\r\n", inet_ntoa(*addr));
 
@@ -112,7 +117,7 @@ void sendSdData() {
 
         printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
         close(s);
-
+  */
 
 }
 /*
@@ -349,7 +354,7 @@ void sendSettings() {
 */
 
 void comms_init() {
-  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init() - FIXME - THIS DOES NOTHING!!!");
+  APP_LOG(APP_LOG_LEVEL_INFO, "comms_init()");
 
   /*
   // Register comms callbacks
