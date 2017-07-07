@@ -15,6 +15,9 @@
 #define ACC_BUF_LEN 50
 
 /* GLOBAL VARIABLES */
+Sd_Settings sdS;        // SD setings structure.
+Wifi_Settings wifiS;    // Wifi Settings structure.
+
 // Settings (obtained from default constants or persistent storage)
 int debug = DEBUG_DEFAULT;    // enable or disable logging output
 int sampleFreq = SAMPLE_FREQ_DEFAULT;      // Sampling frequency in Hz (must be one of 10,25,50 or 100)

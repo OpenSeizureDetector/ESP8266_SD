@@ -42,6 +42,16 @@
 #define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
 #define INTR_PIN (13) // Wemos D1 Mini D7 = GPIO13
 
+/* Filenames for system files */
+#define ANALYSIS_SETTINGS_FNAME "analysis_settings.dat"
+#define WIFI_SETTINGS_FNAME "wifi_settings.dat"
+
+/* Network Configuration */
+#define SETUP_WIFI_SSID "OSD_APP"
+#define SSID_DEFAULT "OSD_WIFI"
+#define PASSWD_DEFAULT "OSD_PASSWD"
+#define OSD_SERVER_IP_DEFAULT "192.168.1.51"
+
 /* ANALYSIS CONFIGURATION */
 
 // default value for output/display settings
@@ -157,9 +167,45 @@
 #define SD_MODE_FILTER 2  // Use digital filter rather than FFT.
 #define SD_MODE_FFT_MULTI_ROI 3  // Use multiple ROI FFT analysis.
 
+// FIXME:  Modify the code to use this structure, rather than loads of
+// global variables!
+typedef struct 
+{
+  int samplePeriod;     // sample period in seconds.
+  int sampleFreq;      // sampling frequency in Hz
+                            //    (must be one of 10,25,50 or 100)
+  int freqCutoff;      // frequency above which movement is ignored.
+  int dataUpdatePeriod; // period (in sec) between sending data to the phone
+  int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
+  int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
+  int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
+  int warnTime;        // number of seconds above threshold to raise warning
+  int alarmTime;       // number of seconds above threshold to raise alarm.
+  int alarmThresh;     // Alarm threshold (average power of spectrum within
+                     //       region of interest.
+  int alarmRatioThresh; // 10x Ratio of ROI power to Spectrum power to raise alarm.
+
+  int fallActive;    // fall detection active (0=inactive)
+  int fallThreshMin; // fall detection minimum (lower) threshold (milli-g)
+  int fallThreshMax; // fall detection maximum (upper) threshold (milli-g)
+  int fallWindow;    // fall detection window (milli-seconds).
+} Sd_Settings;
+
+typedef struct {
+  char ssid[50];     // wifi ssid to connect to
+  char passwd[50];   // wifi password
+  char serverIp[50]; // ip address of server to connect to.
+} Wifi_Settings;
+
+
+
+
+
 /* GLOBAL VARIABLES */
 // Settings (obtained from default constants or persistent storage)
 extern int debug;            // enable or disable logging output
+extern Sd_Settings sdS;        // SD setings structure.
+extern Wifi_Settings wifiS;    // Wifi setings structure.
 extern int displaySpectrum;  // enable or disable spectrum display on watch screen.
 extern int samplePeriod;    // sample period in seconds.
 extern int sampleFreq;      // sampling frequency in Hz
@@ -242,5 +288,8 @@ void httpd_task(void *pvParameters);
 
 // from settings.c
 void settings_init();
-void read_settings();
-void save_settings();
+void readSdSettings();
+void saveSdSettings();
+void readWifiSettings();
+void saveWifiSettings();
+void wifiSettingsToString(char* buf, int len);

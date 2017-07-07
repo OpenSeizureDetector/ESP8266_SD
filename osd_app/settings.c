@@ -33,7 +33,7 @@
 #include "unistd.h"
 #include "spiffs.h"
 #include "esp_spiffs.h"
-
+#include "jsmn.h"
 #include "osd_app.h"
 
 void settings_init() {
@@ -46,50 +46,104 @@ void settings_init() {
 
   SPIFFS_info(&fs, &total, &used);
   printf("Total: %d bytes, used: %d bytes\n", total, used);
-  read_settings();
-  save_settings();
-  read_settings();
 
+  // initialise settings structure with default values.
+  sdS.samplePeriod = SAMPLE_PERIOD_DEFAULT;
+  sdS.sampleFreq = SAMPLE_FREQ_DEFAULT;
+  sdS.freqCutoff = FREQ_CUTOFF_DEFAULT;
+  sdS.dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
+  
+  readSdSettings();
+  saveSdSettings();
+  readSdSettings();
+
+  if (sdS.samplePeriod == SAMPLE_PERIOD_DEFAULT)
+    printf("Success - sample period read correctly!\n");
+
+
+  readWifiSettings();
+  //saveWifiSettings();
 }
 
 
-void read_settings() {
-  APP_LOG(APP_LOG_LEVEL_INFO, "read_settings()");
-  
-  const int buf_size = 0xFF;
-  uint8_t buf[buf_size];
-  
-  spiffs_file fd = SPIFFS_open(&fs, "other.txt", SPIFFS_RDONLY, 0);
+/**
+ * readSdettings() - read the settings struct sdS from file
+ * in binary format.
+ */
+void readSdSettings() {
+  APP_LOG(APP_LOG_LEVEL_INFO, "readSdSettings()");
+  spiffs_file fd = SPIFFS_open(&fs, ANALYSIS_SETTINGS_FNAME, SPIFFS_RDONLY, 0);
   if (fd < 0) {
-    printf("Error opening file\n");
+    printf("Error opening file %s\n",ANALYSIS_SETTINGS_FNAME);
     return;
-  }
-  
-  int read_bytes = SPIFFS_read(&fs, fd, buf, buf_size);
-  printf("Read %d bytes\n", read_bytes);
-  
-  buf[read_bytes] = '\0';    // zero terminate string
-  printf("Data: %s\n", buf);
-  
+  }  
+  int read_bytes = SPIFFS_read(&fs, fd, &sdS, sizeof(sdS));
+  printf("Read %d bytes from file %s into settings structure\n", read_bytes,ANALYSIS_SETTINGS_FNAME);  
   SPIFFS_close(&fs, fd);
 }
 
-
-void save_settings() {
+/**
+ * saveSdSettings() - write the settings struct sdS to file
+ * in binary format.
+ */
+void saveSdSettings() {
   APP_LOG(APP_LOG_LEVEL_INFO, "save_settings()");
 
-  uint8_t buf[] = "Example data, written by ESP8266";
-  
-  int fd = open("other.txt", O_WRONLY|O_CREAT, 0);
+  int fd = open(ANALYSIS_SETTINGS_FNAME, O_WRONLY|O_CREAT, 0);
   if (fd < 0) {
-    printf("Error opening file\n");
+    printf("Error opening file %s\n",ANALYSIS_SETTINGS_FNAME);
     return;
   }
-  
-  int written = write(fd, buf, sizeof(buf));
-  printf("Written %d bytes\n", written);
-  
+  int written = write(fd, &sdS, sizeof(sdS));
+  printf("Written %d bytes to file %s\n", written,ANALYSIS_SETTINGS_FNAME);
+  close(fd);
+}
+
+/**
+ * readWifiettings() - read the settings struct wifiS from file
+ * in binary format.
+ */
+void readWifiSettings() {
+  char buf[256];
+  APP_LOG(APP_LOG_LEVEL_INFO, "readWifiSettings()");
+  spiffs_file fd = SPIFFS_open(&fs, WIFI_SETTINGS_FNAME, SPIFFS_RDONLY, 0);
+  if (fd < 0) {
+    printf("Error opening file %s - using default values\n",WIFI_SETTINGS_FNAME);
+    strncpy(wifiS.ssid,SSID_DEFAULT,sizeof(wifiS.ssid));
+    strncpy(wifiS.passwd,PASSWD_DEFAULT,sizeof(wifiS.ssid));
+    strncpy(wifiS.serverIp,OSD_SERVER_IP_DEFAULT,sizeof(wifiS.ssid));
+  } else {  
+    int read_bytes = SPIFFS_read(&fs, fd, &wifiS, sizeof(wifiS));
+    printf("Read %d bytes from file %s into wifi settings structure\n",
+	   read_bytes,WIFI_SETTINGS_FNAME);  
+    SPIFFS_close(&fs, fd);
+  }
+  wifiSettingsToString(buf,sizeof(buf));
+  printf("settings=%s\n",buf);
+}
+
+/**
+ * saveWifiSettings() - write the settings struct wifiS to file
+ * in binary format.
+ */
+void saveWifiSettings() {
+  APP_LOG(APP_LOG_LEVEL_INFO, "saveWifiSettings()");
+
+  int fd = open(WIFI_SETTINGS_FNAME, O_WRONLY|O_CREAT, 0);
+  if (fd < 0) {
+    printf("Error opening file %s\n",WIFI_SETTINGS_FNAME);
+    return;
+  }
+  int written = write(fd, &wifiS, sizeof(wifiS));
+  printf("Written %d bytes to file %s\n", written, WIFI_SETTINGS_FNAME);
   close(fd);
 }
 
 
+/* write the wifi settings as a JSON string to buffer buf of length len
+ */
+void wifiSettingsToString(char* buf, int len) {
+  printf("wifiSettingsToString - len=%d\n",len);
+  snprintf(buf,len,"{'ssid':'%s','passwd':'%s','serverip':'%s'}",
+	   wifiS.ssid, wifiS.passwd, wifiS.serverIp);
+}
