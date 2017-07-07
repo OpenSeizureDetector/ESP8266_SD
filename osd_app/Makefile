@@ -6,7 +6,11 @@ EXTRA_CFLAGS=-DLWIP_HTTPD_CGI=1 -DLWIP_HTTPD_SSI=1 -I./fsdata
 
 
 # Add any modules from the 'extras' folder in esp-open-rtos here.
-EXTRA_COMPONENTS=extras/mbedtls extras/httpd extras/spiffs extras/jsmn
+EXTRA_COMPONENTS=extras/mbedtls \
+		extras/httpd \
+		extras/spiffs \
+		extras/jsmn \
+		extras/dhcpserver
 
 # spiffs configuration
 FLASH_SIZE = 32

@@ -356,6 +356,17 @@ void sendSettings() {
 void comms_init() {
   APP_LOG(APP_LOG_LEVEL_INFO, "comms_init()");
 
+  struct sdk_station_config config = {
+    .ssid = WIFI_SSID,
+    .password = WIFI_PASS,
+  };
+  
+  /* required to call wifi_set_opmode before station_set_config */
+  sdk_wifi_set_opmode(STATION_MODE);
+  sdk_wifi_station_set_config(&config);
+  sdk_wifi_station_connect();
+
+  
   /*
   // Register comms callbacks
   app_message_register_inbox_received(inbox_received_callback);

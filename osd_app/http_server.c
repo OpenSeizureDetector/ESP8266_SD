@@ -13,6 +13,7 @@
 #include <ssid_config.h>
 #include <httpd/httpd.h>
 #include "osd_app.h"
+#include <dhcpserver.h>
 
 #define LED_PIN 2
 
@@ -60,16 +61,33 @@ char *data_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValu
 void httpd_task(void *pvParameters)
 {
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"httpd_task()\n");
+
+  sdk_wifi_set_opmode(SOFTAP_MODE);
+  struct ip_info ap_ip;
+  IP4_ADDR(&ap_ip.ip, 192, 168, 1, 1);
+  IP4_ADDR(&ap_ip.gw, 0, 0, 0, 0);
+  IP4_ADDR(&ap_ip.netmask, 255, 255, 255, 0);
+  sdk_wifi_set_ip_info(1, &ap_ip);
   
-  struct sdk_station_config config = {
-    .ssid = WIFI_SSID,
-    .password = WIFI_PASS,
+  struct sdk_softap_config ap_config = {
+    .ssid = SETUP_WIFI_SSID,
+    .ssid_hidden = 0,
+    .channel = 3,
+    .ssid_len = strlen(SETUP_WIFI_SSID),
+    .authmode = AUTH_WPA_WPA2_PSK,
+    .password = SETUP_WIFI_PASSWD,
+    .max_connection = 3,
+    .beacon_interval = 100,
   };
+
+  printf("configuring SSID %s\n",ap_config.ssid);
+  sdk_wifi_softap_set_config(&ap_config);
+
+  ip_addr_t first_client_ip;
+  IP4_ADDR(&first_client_ip, 192, 168, 1, 2);
+  dhcpserver_start(&first_client_ip, 4);
+
   
-  /* required to call wifi_set_opmode before station_set_config */
-  sdk_wifi_set_opmode(STATION_MODE);
-  sdk_wifi_station_set_config(&config);
-  sdk_wifi_station_connect();
   
   /* turn off LED */
   gpio_enable(LED_PIN, GPIO_OUTPUT);

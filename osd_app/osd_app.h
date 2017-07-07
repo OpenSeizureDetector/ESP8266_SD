@@ -41,6 +41,7 @@
 #define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5
 #define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
 #define INTR_PIN (13) // Wemos D1 Mini D7 = GPIO13
+#define SETUP_PIN (12)  // Wemos D1 Mini D6 = GPIO12
 
 /* Filenames for system files */
 #define ANALYSIS_SETTINGS_FNAME "analysis_settings.dat"
@@ -48,6 +49,7 @@
 
 /* Network Configuration */
 #define SETUP_WIFI_SSID "OSD_APP"
+#define SETUP_WIFI_PASSWD "1234"
 #define SSID_DEFAULT "OSD_WIFI"
 #define PASSWD_DEFAULT "OSD_PASSWD"
 #define OSD_SERVER_IP_DEFAULT "192.168.1.51"

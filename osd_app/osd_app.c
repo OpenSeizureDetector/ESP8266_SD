@@ -342,16 +342,19 @@ void user_init(void)
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 
-  settings_init();
-  comms_init();
-  analysis_init();
-
-  tsqueue = xQueueCreate(2, sizeof(uint32_t));
-  xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
-	      256, &tsqueue, 2, NULL);
-  xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
-	      256, NULL, 2, NULL);
-
-  xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);
-  
+  if (gpio_read(SETUP_PIN)) {
+    printf("Starting in Run Mode\n");
+    settings_init();
+    comms_init();
+    analysis_init();
+    
+    tsqueue = xQueueCreate(2, sizeof(uint32_t));
+    xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
+		256, &tsqueue, 2, NULL);
+    xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
+		256, NULL, 2, NULL);
+  } else {
+    printf("Starting in Setup Mode\n");
+    xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);
+  }
 }
