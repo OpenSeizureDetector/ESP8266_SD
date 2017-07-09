@@ -342,6 +342,8 @@ void user_init(void)
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
   //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 
+  gpio_enable(SETUP_PIN,GPIO_INPUT);
+  gpio_set_pullup(SETUP_PIN,true,false);
   if (gpio_read(SETUP_PIN)) {
     printf("Starting in Run Mode\n");
     settings_init();
