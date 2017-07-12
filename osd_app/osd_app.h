@@ -268,13 +268,10 @@ extern int alarmCount;    // number of seconds that we have been in an alarm sta
 
 /* Functions */
 // from comms.c
-//void inbox_received_callback(DictionaryIterator *iterator, void *context);
-//void inbox_dropped_callback(AppMessageResult reason, void *context);
-//void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context);
-//void outbox_sent_callback(DictionaryIterator *iterator, void *context);
 void sendSdData();
 void sendRawData();
 void comms_init();
+void commsTask(void *pvParameters);
 
 
 // from analysis.c

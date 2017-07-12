@@ -73,6 +73,7 @@ int alarmRoi = 0;
 int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 
 static QueueHandle_t tsqueue;
+static QueueHandle_t commsQueue;
 
 /**
  * Initialise the ADXL345 accelerometer trip to use a FIFO buffer
@@ -173,6 +174,7 @@ void AlarmCheckTask(void *pvParam) {
   static int dataUpdateCount = 0;
   static int lastAlarmState = 0;
   printf("AlarmCheckTask() - running every second\n");
+  QueueHandle_t *commsQueue = (QueueHandle_t *)pvParam;
   while(1) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     printf("AlarmCheckTask() - heap=%d.\n", xPortGetFreeHeapSize());
@@ -214,7 +216,8 @@ void AlarmCheckTask(void *pvParam) {
       // or if alarm state has changed from last time.
       if ((alarmState != ALARM_STATE_OK && !isMuted) ||
 	  (alarmState != lastAlarmState)) {
-	sendSdData();
+	//sendSdData();
+        xQueueSend(*commsQueue, &dataUpdateCount, 0);
       }
       lastAlarmState = alarmState;
     }
@@ -222,7 +225,8 @@ void AlarmCheckTask(void *pvParam) {
     // See if it is time to send data to the phone.
     dataUpdateCount++;
     if (dataUpdateCount>=dataUpdatePeriod) {
-      sendSdData();
+      //sendSdData();
+      xQueueSend(*commsQueue, &dataUpdateCount, 0);
       dataUpdateCount = 0;
     } 
   }
@@ -351,10 +355,13 @@ void user_init(void)
     analysis_init();
     
     tsqueue = xQueueCreate(2, sizeof(uint32_t));
+    commsQueue = xQueueCreate(2, sizeof(uint32_t));
     xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 		256, &tsqueue, 2, NULL);
     xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
-		512, NULL, 2, NULL);
+		512, &commsQueue, 2, NULL);
+    xTaskCreate(commsTask, "commsTask",
+		256, &commsQueue, 2, NULL);
   } else {
     printf("Starting in Setup Mode\n");
     xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);

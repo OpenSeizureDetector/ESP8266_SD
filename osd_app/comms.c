@@ -463,3 +463,19 @@ void comms_init() {
 
 
 }
+
+
+/* 
+ *  waits for a message from the queue.  When received, sends
+ *  the SD Data to the server.
+*/
+void commsTask(void *pvParameters)
+{
+  QueueHandle_t *commsQueue = (QueueHandle_t *)pvParameters;
+
+  while(1) {
+    uint32_t data_ts;
+    xQueueReceive(*commsQueue, &data_ts, portMAX_DELAY);
+    sendSdData();
+  }
+}
