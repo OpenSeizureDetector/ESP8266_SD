@@ -354,7 +354,7 @@ void user_init(void)
     xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 		256, &tsqueue, 2, NULL);
     xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
-		256, NULL, 2, NULL);
+		512, NULL, 2, NULL);
   } else {
     printf("Starting in Setup Mode\n");
     xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);

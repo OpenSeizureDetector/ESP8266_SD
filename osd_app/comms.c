@@ -69,7 +69,7 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
 		    char *contType, char *data,
 		   char *response, int maxLen) {
   struct sockaddr_in ipaddr;
-  char req[REQ_SIZE];
+  static char req[REQ_SIZE];
   int ret;
   int s;  // socket id.
   
@@ -104,11 +104,13 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
   }
 
   snprintf(req,REQ_SIZE,
-    "%s %s\r\n"
+    "%s %s HTTP/1.0\r\n"
     "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
 	   "Content-Type: %s\r\n"
-	   "\r\n\r\n"
-	   "%s\r\n",reqType,url,contType,data);
+	   "Content-Length:%d\r\n"
+	   "\r\n"
+	   "%s\r\n"
+	   ,reqType,url,contType,strlen(data),data);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
 		     "sendHttpRequest() - req=%s\n",req);
   if (lwip_write(s, req, strlen(req)) < 0) {
@@ -121,12 +123,12 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
 
   // zero the response buffer, then read the response.
   bzero(response, maxLen);
-  r = lwip_read(s,response,maxLen);
+  ret = lwip_read(s,response,maxLen);
   
-  printf("sendHttpRequest()... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
+  printf("sendHttpRequest()... done reading from socket. Last read return=%d errno=%d\r\n", ret, errno);
   close(s);
 
-  return r;
+  return ret;
 }
 
 /** 
@@ -138,64 +140,29 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
  */
 int sendGetRequest(char *serverIp, char *url, int serverPort,
 		   char *response, int maxLen) {
-  struct sockaddr_in ipaddr;
-  char req[REQ_SIZE];
-  int ret;
-  int s;  // socket id.
-  
+  int r;
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendGetRequest(%s)", url);
-  
-  // set up server address
-  memset(&ipaddr,0,sizeof(ipaddr));
-  ipaddr.sin_len = sizeof(ipaddr);
-  ipaddr.sin_family = AF_INET;
-  ipaddr.sin_port = PP_HTONS(serverPort);
-  ipaddr.sin_addr.s_addr = inet_addr(serverIp);
-  printf("processed IP Address = %s\n", ipaddr_ntoa((ip_addr_t*)&(ipaddr.sin_addr.s_addr)));
-
-  // create socket
-  s = lwip_socket(AF_INET, SOCK_STREAM, 0);
-  if(s < 0) {
-    printf("sendGetRequest()... Failed to allocate socket.\r\n");
-    return -1;
-  } else
-      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-			 "sendSdData() - allocated socket ok\n");
-
-  // connect
-  ret = lwip_connect(s, (struct sockaddr*)&ipaddr, sizeof(ipaddr));
-  if(ret!=0) {
-    close(s);
-    printf("sendGetRequest() - **** FAILED TO CONNECT ***\n");
-    return -1 ;
-  } else {
-    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-		       "sendGetRequest() - connected ok\n");
-  }
-
-  snprintf(req,REQ_SIZE,
-    "GET %s\r\n"
-    "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
-	   "\r\n",url);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-		     "sendGetRequest() - req=%s\n",req);
-  if (lwip_write(s, req, strlen(req)) < 0) {
-    printf("sendGetRequest()... socket send failed\r\n");
-    close(s);
-  } else {
-    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-		       "sendGetRequest() - send ok\n");
-  }
-
-  // zero the response buffer, then read the response.
-  bzero(response, maxLen);
-  r = lwip_read(s,response,maxLen);
-  
-  printf("sendGetRequest()... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
-  close(s);
-
+  r = sendHttpRequest(serverIp,url,serverPort,
+		      "GET","application/json","",response,maxLen);
   return r;
 }
+
+/** 
+ * int sendPostRequest(serverIp,url,serverPort,data,response,maxlen)
+ * sends a http GET request to server *serverIp with *url, port serverPort 
+ * including *data in the header, and put the response in *response
+ * which should have maxLen bytes reserved for it.
+ * returns the number of bytes read.
+ */
+int sendPostRequest(char *serverIp, char *url, int serverPort, char *data,
+		   char *response, int maxLen) {
+  int r;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendGetRequest(%s)", url);
+  r = sendHttpRequest(serverIp,url,serverPort,
+		      "POST","application/json",data,response,maxLen);
+  return r;
+}
+
 
 
 /***************************************************
@@ -205,9 +172,16 @@ int sendGetRequest(char *serverIp, char *url, int serverPort,
 void sendSdData() {
   static char buf[BUF_SIZE];
   int ret;
-  ret = sendGetRequest(WEB_IPADDR,"/data",WEB_PORT,buf,BUF_SIZE);
+  //ret = sendGetRequest(WEB_IPADDR,"/data",WEB_PORT,buf,BUF_SIZE);
+  //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData() - response=%d - %s",
+  //		     ret,buf);
+
+  ret = sendPostRequest(WEB_IPADDR,"/data",WEB_PORT,
+			"{\"data\":{\"nsamp\":500,\"roiPower\":200,\"specPower\":30}}",
+			buf,BUF_SIZE);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData() - response=%d - %s",
 		     ret,buf);
+
 }
 /*
   DictionaryIterator *iter;

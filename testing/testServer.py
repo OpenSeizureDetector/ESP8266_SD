@@ -51,6 +51,19 @@ def settings():
     print "settings.post"
     return("POST not implemented")
 
+@bottle.post('/data')
+def data():
+    print "data.post - content type=",bottle.request.headers['Content-Type']
+
+    print "json=",bottle.request.json
+    print "body=",bottle.request.body.len
+    print "body=",bottle.request.body.read()
+
+    print "nsamp=",bottle.request.json["data"]["nsamp"]
+    #print "request=",dir(bottle.request)
+
+    return("data Received")
+
 
 ##################################################################
 # DELETE requests - delete risk or mitigation
