@@ -59,65 +59,67 @@ void sendFftSpec();
  */
 
 void sendSdData() {
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
-
-  const struct addrinfo hints = {
-    .ai_family = AF_INET,
-    .ai_socktype = SOCK_STREAM,
-  };
-  struct addrinfo *res;
-  struct in_addr ipaddr;
+  struct sockaddr_in ipaddr;
+  int ret;
+  int s;  // socket id.
   
-  ipaddr.s_addr = ipaddr_addr(WEB_IPADDR);
-  printf("processed IP Address = %s\n", ipaddr_ntoa(&ipaddr));
-  /* Note: inet_ntoa is non-reentrant, look at ipaddr_ntoa_r for "real" code */
-  /*
-  struct in_addr *addr = &((struct sockaddr_in *)res->ai_addr)->sin_addr;
-  printf("DNS lookup succeeded. IP=%s\r\n", inet_ntoa(*addr));
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
+  
+  
+  // set up server address
+  memset(&ipaddr,0,sizeof(ipaddr));
+  ipaddr.sin_len = sizeof(ipaddr);
+  ipaddr.sin_family = AF_INET;
+  ipaddr.sin_port = PP_HTONS(WEB_PORT);
+  ipaddr.sin_addr.s_addr = inet_addr(WEB_IPADDR);
+  printf("processed IP Address = %s\n", ipaddr_ntoa((ip_addr_t*)&(ipaddr.sin_addr.s_addr)));
 
-        int s = socket(res->ai_family, res->ai_socktype, 0);
-        if(s < 0) {
-            printf("... Failed to allocate socket.\r\n");
-            freeaddrinfo(res);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
+  // create socket
+  s = lwip_socket(AF_INET, SOCK_STREAM, 0);
+  if(s < 0) {
+    printf("... Failed to allocate socket.\r\n");
+    return;
+  } else
+      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+			 "sendSdData() - allocated socket ok\n");
 
-        printf("... allocated socket\r\n");
+  // connect
+  ret = lwip_connect(s, (struct sockaddr*)&ipaddr, sizeof(ipaddr));
+  if(ret!=0) {
+    close(s);
+    printf("sendSdData() - **** FAILED TO CONNECT ***\n");
+    return;
+  } else {
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		       "sendSdData() - connected ok\n");
+  }
 
-        if(connect(s, res->ai_addr, res->ai_addrlen) != 0) {
-            close(s);
-            freeaddrinfo(res);
-            printf("... socket connect failed.\r\n");
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
-        }
+  const char *req =
+    "GET "WEB_URL"\r\n"
+    "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
+    "\r\n";
+  if (lwip_write(s, req, strlen(req)) < 0) {
+    printf("sendSdData()... socket send failed\r\n");
+    close(s);
+  } else {
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		       "sendSdData() - send ok\n");
+  }
 
-        printf("... connected\r\n");
-        freeaddrinfo(res);
+  // receive response
+  static char recv_buf[128];
+  int r;
+  do {
+    bzero(recv_buf, 128);
+    r = lwip_read(s, recv_buf, 127);
+    if(r > 0) {
+      printf("%s", recv_buf);
+    }
+  } while(r > 0);
+  
+  printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
+  close(s);
 
-        const char *req =
-            "GET "WEB_URL"\r\n"
-            "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
-            "\r\n";
-        if (write(s, req, strlen(req)) < 0) {
-            printf("... socket send failed\r\n");
-            close(s);
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
-        }
-        printf("... socket send success\r\n");
-
-        static char recv_buf[128];
-        int r;
-        do {
-            bzero(recv_buf, 128);
-            r = read(s, recv_buf, 127);
-            if(r > 0) {
-                printf("%s", recv_buf);
-            }
-        } while(r > 0);
-
-        printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
-        close(s);
-  */
 
 }
 /*
