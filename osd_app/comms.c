@@ -47,38 +47,47 @@ void sendSettings();
 void sendFftSpec();
 
 
-#define WEB_SERVER "chainxor.org"
 #define WEB_IPADDR "192.168.43.77"
 #define WEB_PORT 8080
 #define WEB_URL "http://chainxor.org/"
 
+#define BUF_SIZE 2000
+#define REQ_SIZE 200
 
-
-/***************************************************
- * Send some Seizure Detector Data to the phone app.
+/**
+ * int sendHttpRequest(serverIp,url,serverPort,reqType,contType,data,
+ *                            response,maxlen)
+ * sends a http GET request to server *serverIp with *url, port serverPort 
+ * Request type reqType is GET, POST etc.
+ * Content type is application/json etc.
+ * Character string data is included in the request body.
+ * and put the response in *response
+ * which should have maxLen bytes reserved for it.
+ * returns the number of bytes read.
  */
-
-void sendSdData() {
+int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
+		    char *contType, char *data,
+		   char *response, int maxLen) {
   struct sockaddr_in ipaddr;
+  char req[REQ_SIZE];
   int ret;
   int s;  // socket id.
   
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()");
-  
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendHttpRequest(%s)", url);
   
   // set up server address
   memset(&ipaddr,0,sizeof(ipaddr));
   ipaddr.sin_len = sizeof(ipaddr);
   ipaddr.sin_family = AF_INET;
-  ipaddr.sin_port = PP_HTONS(WEB_PORT);
-  ipaddr.sin_addr.s_addr = inet_addr(WEB_IPADDR);
+  ipaddr.sin_port = PP_HTONS(serverPort);
+  ipaddr.sin_addr.s_addr = inet_addr(serverIp);
   printf("processed IP Address = %s\n", ipaddr_ntoa((ip_addr_t*)&(ipaddr.sin_addr.s_addr)));
 
   // create socket
   s = lwip_socket(AF_INET, SOCK_STREAM, 0);
   if(s < 0) {
-    printf("... Failed to allocate socket.\r\n");
-    return;
+    printf("sendHttpRequest()... Failed to allocate socket.\r\n");
+    return -1;
   } else
       if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
 			 "sendSdData() - allocated socket ok\n");
@@ -87,40 +96,118 @@ void sendSdData() {
   ret = lwip_connect(s, (struct sockaddr*)&ipaddr, sizeof(ipaddr));
   if(ret!=0) {
     close(s);
-    printf("sendSdData() - **** FAILED TO CONNECT ***\n");
-    return;
+    printf("sendHttpRequest() - **** FAILED TO CONNECT ***\n");
+    return -1 ;
   } else {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-		       "sendSdData() - connected ok\n");
+		       "sendHttpRequest() - connected ok\n");
   }
 
-  const char *req =
-    "GET "WEB_URL"\r\n"
+  snprintf(req,REQ_SIZE,
+    "%s %s\r\n"
     "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
-    "\r\n";
+	   "Content-Type: %s\r\n"
+	   "\r\n\r\n"
+	   "%s\r\n",reqType,url,contType,data);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		     "sendHttpRequest() - req=%s\n",req);
   if (lwip_write(s, req, strlen(req)) < 0) {
-    printf("sendSdData()... socket send failed\r\n");
+    printf("sendHttpRequest()... socket send failed\r\n");
     close(s);
   } else {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-		       "sendSdData() - send ok\n");
+		       "sendHttpRequest() - send ok\n");
   }
 
-  // receive response
-  static char recv_buf[128];
-  int r;
-  do {
-    bzero(recv_buf, 128);
-    r = lwip_read(s, recv_buf, 127);
-    if(r > 0) {
-      printf("%s", recv_buf);
-    }
-  } while(r > 0);
+  // zero the response buffer, then read the response.
+  bzero(response, maxLen);
+  r = lwip_read(s,response,maxLen);
   
-  printf("... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
+  printf("sendHttpRequest()... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
   close(s);
 
+  return r;
+}
 
+/** 
+ * int sendGetRequest(serverIp,url,serverPort,response,maxlen)
+ * sends a http GET request to server *serverIp with *url, port serverPort 
+ * and put the response in *response
+ * which should have maxLen bytes reserved for it.
+ * returns the number of bytes read.
+ */
+int sendGetRequest(char *serverIp, char *url, int serverPort,
+		   char *response, int maxLen) {
+  struct sockaddr_in ipaddr;
+  char req[REQ_SIZE];
+  int ret;
+  int s;  // socket id.
+  
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendGetRequest(%s)", url);
+  
+  // set up server address
+  memset(&ipaddr,0,sizeof(ipaddr));
+  ipaddr.sin_len = sizeof(ipaddr);
+  ipaddr.sin_family = AF_INET;
+  ipaddr.sin_port = PP_HTONS(serverPort);
+  ipaddr.sin_addr.s_addr = inet_addr(serverIp);
+  printf("processed IP Address = %s\n", ipaddr_ntoa((ip_addr_t*)&(ipaddr.sin_addr.s_addr)));
+
+  // create socket
+  s = lwip_socket(AF_INET, SOCK_STREAM, 0);
+  if(s < 0) {
+    printf("sendGetRequest()... Failed to allocate socket.\r\n");
+    return -1;
+  } else
+      if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+			 "sendSdData() - allocated socket ok\n");
+
+  // connect
+  ret = lwip_connect(s, (struct sockaddr*)&ipaddr, sizeof(ipaddr));
+  if(ret!=0) {
+    close(s);
+    printf("sendGetRequest() - **** FAILED TO CONNECT ***\n");
+    return -1 ;
+  } else {
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		       "sendGetRequest() - connected ok\n");
+  }
+
+  snprintf(req,REQ_SIZE,
+    "GET %s\r\n"
+    "User-Agent: esp-open-rtos/0.1 esp8266\r\n"
+	   "\r\n",url);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		     "sendGetRequest() - req=%s\n",req);
+  if (lwip_write(s, req, strlen(req)) < 0) {
+    printf("sendGetRequest()... socket send failed\r\n");
+    close(s);
+  } else {
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		       "sendGetRequest() - send ok\n");
+  }
+
+  // zero the response buffer, then read the response.
+  bzero(response, maxLen);
+  r = lwip_read(s,response,maxLen);
+  
+  printf("sendGetRequest()... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
+  close(s);
+
+  return r;
+}
+
+
+/***************************************************
+ * Send some Seizure Detector Data to the phone app.
+ */
+
+void sendSdData() {
+  static char buf[BUF_SIZE];
+  int ret;
+  ret = sendGetRequest(WEB_IPADDR,"/data",WEB_PORT,buf,BUF_SIZE);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData() - response=%d - %s",
+		     ret,buf);
 }
 /*
   DictionaryIterator *iter;

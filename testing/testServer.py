@@ -11,6 +11,9 @@ from datetime import datetime
 def getSettingsJson(idStr=None):
     return("{name:\"settings\"}")
 
+def getDataJson(idStr=None):
+    return("{data:\"dataStr\"}")
+
 ##################################################################
 # GET requests - return data to seizure detector device
 ##################################################################
@@ -19,6 +22,13 @@ def settings(idStr=None):
     print "settings.get - idStr=%s." % idStr
     bottle.response.content_type='application/javascript'
     return getSettingsJson(idStr)
+
+@bottle.get('/data')
+def data(idStr=None):
+    print "data.get - idStr=%s." % idStr
+    print "response is %s" % getDataJson(idStr)
+    bottle.response.content_type='application/javascript'
+    return getDataJson(idStr)
 
 
 ####################################################
