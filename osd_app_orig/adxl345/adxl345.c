@@ -136,12 +136,7 @@ uint8_t ADXL345_findDevice() {
 
 uint8_t ADXL345_init(int scl, int sda) {
   printf("ADXL345_init(%d,%d)\n",scl,sda);
-  #ifdef ESP_SDK
   i2c_init(scl,sda);
-  #else
-  i2c_master_gpio_init();
-  i2c_master_init();
-  #endif
   ADXL345_devAddr = 0;
   ADXL345_devAddr = ADXL345_findDevice();
   if (ADXL345_devAddr==0) {

@@ -2,12 +2,12 @@
  * OpenSeizureDetector - ESP8266 Version.
  *  ADXL code based on https://gist.github.com/shunkino/6b1734ee892fe2efbd12
  */
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "espressif/esp_common.h"
 #include "uart.h"
-//#include "i2c/i2c.h"
-//#include "queue.h"
+#include "i2c/i2c.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "queue.h"
 #include "osd_app.h"
 
 #include "adxl345/adxl345.h"
@@ -72,8 +72,8 @@ int alarmState = 0;    // 0 = OK, 1 = WARNING, 2 = ALARM
 int alarmRoi = 0;
 int alarmCount = 0;    // number of seconds that we have been in an alarm state.
 
-static xQueueHandle tsqueue;
-static xQueueHandle commsQueue;
+static QueueHandle_t tsqueue;
+static QueueHandle_t commsQueue;
 
 /**
  * Initialise the ADXL345 accelerometer trip to use a FIFO buffer
@@ -81,46 +81,46 @@ static xQueueHandle commsQueue;
  */
 void setup_adxl345() {
   uint8_t devAddr;
-  
+
   printf("setup_adxl345()\n");
-  
+
   // Initialise the ADXL345 i2c interface and search for the ADXL345
   devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
   printf("ADXL345 found at address 0x%x\n",devAddr);
-  
+
   //printf("Clearing Settings...\n");
   //ADXL345_clearSettings();
-  
+
   // Bypass the FIFO buffer
   ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,6,0);
   ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,7,0);
-  
+
   printf("Setting 4G range\n");
   ADXL345_setRange(ADXL345_RANGE_4G);
-  
+
   printf("Setting to 100Hz data rate\n");
   ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
   //ADXL345_setDataRate(ADXL345_DATARATE_12_5HZ);
-  
+
   /*printf("Setting Data Format - interupts active low.\n");
-    if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
+  if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
     printf("*** Error setting Data Format ***\n");
-    } else {
+  } else {
     printf("Data Format Set to 0x%02x\n",
-    ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
-    }
+  	   ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+  }
   */
   // Set to 4g range, 4mg/LSB resolution, interrupts active high.
   ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0b00001001);
-  
+
   printf("Starting Measurement\n");
   if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)==-1) {
     printf("*** Error setting measurement Mode ***\n");
   } else {
     printf("Measurement Mode set to 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
   }
-  
-  
+
+
   printf("Enabling Data Ready Interrupt\n");
   if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
     printf("*** Error enabling interrupt ***\n");
@@ -128,8 +128,8 @@ void setup_adxl345() {
     printf("Interrupt Enabled - set to 0x%02x\n",
 	   ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
   }
-  
-  
+
+
   printf("************************************\n");
   printf("DEV_ID=     0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
   printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
@@ -174,7 +174,7 @@ void AlarmCheckTask(void *pvParam) {
   static int dataUpdateCount = 0;
   static int lastAlarmState = 0;
   printf("AlarmCheckTask() - running every second\n");
-  xQueueHandle *commsQueue = (xQueueHandle *)pvParam;
+  QueueHandle_t *commsQueue = (QueueHandle_t *)pvParam;
   while(1) {
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     printf("AlarmCheckTask() - heap=%d.\n", xPortGetFreeHeapSize());
@@ -278,7 +278,7 @@ void gpio_intr_handler(uint8_t gpio_num)
 
 /* 
  *  based on button.c example in the esp-open-rtos sdk.
- */
+*/
 void receiveAccelDataTask(void *pvParameters)
 {
   ADXL345_IVector r;
@@ -288,20 +288,20 @@ void receiveAccelDataTask(void *pvParameters)
   setup_adxl345();
   ADXL345_enableFifo();
   printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
-  xQueueHandle *tsqueue = (QueueHandle *)pvParameters;
-  
+  QueueHandle_t *tsqueue = (QueueHandle_t *)pvParameters;
+
   // Set the Interrupt pin to be an input.
   gpio_enable(INTR_PIN, GPIO_INPUT);
   gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
-  
+
   // Start the routine monitoring task
   //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
-  
+
   while(1) {
     uint32_t data_ts;
     xQueueReceive(*tsqueue, &data_ts, portMAX_DELAY);
     data_ts *= portTICK_PERIOD_MS;
-    
+
     /// Now read all the data from the FIFO buffer on the ADXL345.
     int i=0;
     bool finished = false;
@@ -323,9 +323,9 @@ void receiveAccelDataTask(void *pvParameters)
     //	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
     /*for (int n=0;n<i;n++) {
       printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
-      n,
-      buf[n].XAxis,buf[n].YAxis,buf[n].ZAxis);
-      }
+	     n,
+	     buf[n].XAxis,buf[n].YAxis,buf[n].ZAxis);
+    }
     */
     // Call the acceleration handler in analysis.c
     accel_handler(buf,i);
@@ -342,10 +342,10 @@ void user_init(void)
   // boot messages as the debug ones - otherwise the boot messages are mangled..
   uart_set_baud(0, 74880);
   printf("SDK version:%s\n", sdk_system_get_sdk_version());
-  
+
   //xTaskCreate(LEDBlinkTask,"Blink",256,NULL,2,NULL);
-  xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
-  /*
+  //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
+
   gpio_enable(SETUP_PIN,GPIO_INPUT);
   gpio_set_pullup(SETUP_PIN,true,false);
   if (gpio_read(SETUP_PIN)) {
@@ -364,7 +364,6 @@ void user_init(void)
 		256, &commsQueue, 2, NULL);
   } else {
     printf("Starting in Setup Mode\n");
-    //xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);
+    xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, 2, NULL);
   }
-  */
 }

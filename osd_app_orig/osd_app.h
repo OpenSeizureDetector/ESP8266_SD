@@ -36,8 +36,6 @@
 #define APP_LOG(lvl,fmt, ...)
 #endif
 
-#define ESP_SDK 1   // Use Espressif RTOS SDK syntax, not openRTOS
-
 
 // Define which GPIO pins are used to connect to the ADXL345 accelerometer.
 #define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5

@@ -4,16 +4,16 @@
  * This sample code is in the public domain.
  */
 #include <espressif/esp_common.h>
-#include <esp8266.h>
-#include <esp/uart.h>
+#include <espressif/esp8266/esp8266.h>
+#include <uart.h>
 #include <string.h>
 #include <stdio.h>
-#include <FreeRTOS.h>
-#include <task.h>
-#include <ssid_config.h>
-#include <httpd/httpd.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+//#include <ssid_config.h>
+#include "httpd/httpd.h"
 #include "osd_app.h"
-#include <dhcpserver.h>
+//#include <lwip/dhcpserver.h>
 
 #define LED_PIN 2
 
@@ -24,10 +24,11 @@ enum {
 };
 
 
-char *gpio_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
+/*char *gpio_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
 {
+  int i;
   APP_LOG(APP_LOG_LEVEL_DEBUG,"gpio_cgi_handler\n");
-  for (int i = 0; i < iNumParams; i++) {
+  for (i = 0; i < iNumParams; i++) {
     if (strcmp(pcParam[i], "on") == 0) {
       uint8_t gpio_num = atoi(pcValue[i]);
       gpio_enable(gpio_num, GPIO_OUTPUT);
@@ -43,7 +44,7 @@ char *gpio_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValu
     }
   }
   return "/index.html";
-}
+  }*/
 
 char *about_cgi_handler(int iIndex, int iNumParams, char *pcParam[], char *pcValue[])
 {
@@ -69,7 +70,7 @@ void httpd_task(void *pvParameters)
   IP4_ADDR(&ap_ip.netmask, 255, 255, 255, 0);
   sdk_wifi_set_ip_info(1, &ap_ip);
   
-  struct sdk_softap_config ap_config = {
+  struct softap_config ap_config = {
     .ssid = SETUP_WIFI_SSID,
     .ssid_hidden = 0,
     .channel = 3,
@@ -90,13 +91,12 @@ void httpd_task(void *pvParameters)
   
   
   /* turn off LED */
-  gpio_enable(LED_PIN, GPIO_OUTPUT);
-  gpio_write(LED_PIN, true);
+  //gpio_enable(LED_PIN, GPIO_OUTPUT);
+  //gpio_write(LED_PIN, true);
   
 
   tCGI pCGIs[] = {
     {"/data", (tCGIHandler) data_cgi_handler},
-    {"/gpio", (tCGIHandler) gpio_cgi_handler},
     {"/about", (tCGIHandler) about_cgi_handler},
   };
   

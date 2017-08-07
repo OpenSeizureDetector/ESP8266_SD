@@ -419,15 +419,15 @@ void sendSettings() {
 void comms_init() {
   APP_LOG(APP_LOG_LEVEL_INFO, "comms_init()");
 
-  struct station_config config = {
+  struct sdk_station_config config = {
     .ssid = WIFI_SSID,
     .password = WIFI_PASS,
   };
   
   /* required to call wifi_set_opmode before station_set_config */
-  wifi_set_opmode(STATION_MODE);
-  wifi_station_set_config(&config);
-  wifi_station_connect();
+  sdk_wifi_set_opmode(STATION_MODE);
+  sdk_wifi_station_set_config(&config);
+  sdk_wifi_station_connect();
 
   
   /*
@@ -471,7 +471,7 @@ void comms_init() {
 */
 void commsTask(void *pvParameters)
 {
-  xQueueHandle *commsQueue = (xQueueHandle *)pvParameters;
+  QueueHandle_t *commsQueue = (QueueHandle_t *)pvParameters;
 
   while(1) {
     uint32_t data_ts;

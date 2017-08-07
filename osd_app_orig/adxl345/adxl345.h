@@ -20,13 +20,8 @@
  */
 
 #include "espressif/esp_common.h"
-
-
-#ifdef ESP8266_RTOS
-#include <i2c_master.h>
-#else
 #include "../i2c/i2c.h"
-#endif
+
 
 
 
