@@ -6,6 +6,8 @@
 
 #include "esp_common.h"
 #include "gpio.h"
+#include "i2c_master.h"
+#include "adxl345.h"
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -81,6 +83,22 @@ void io_intr_handler(void)
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, status);       //CLEAR THE STATUS IN THE W1 INTERRUPT REGISTER
 }
 
+void i2cScanTask(void *pvParameters) {
+  uint8_t i;
+  printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",I2C_MASTER_SCL_GPIO,
+	 I2C_MASTER_SDA_GPIO);
+  i2c_master_gpio_init();
+  printf("i2c_init() complete\n");
+
+  while(1) {
+    i = ADXL345_findDevice();
+    printf("ADXL found at address %x\n",i);
+    vTaskDelay(5000 / portTICK_RATE_MS);
+  } 
+}
+
+
+
 /******************************************************************************
  * FunctionName : user_init
  * Description  : entry of user application, init user function here
@@ -123,5 +141,8 @@ void user_init(void)
 
     gpio_intr_handler_register(io_intr_handler, NULL);
     ETS_GPIO_INTR_ENABLE();
+
+
+    xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 }
 
