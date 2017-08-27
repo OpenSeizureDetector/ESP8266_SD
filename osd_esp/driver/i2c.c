@@ -2,6 +2,7 @@
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015 Johan Kanflo (github.com/kanflo)
+ *               2017 Graham Jones (github.com/jones139)
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +23,21 @@
  * THE SOFTWARE.
  */
 
+/**
+ * Note:  This is the esp-open-rtos sdk i2c driver modified to work with the
+ *        Espressif RTOS sdk rather than esp-open-rtos.
+ *        I did this because esp-open-rtos does not support low power sleep
+ *        functions which I need, and it looks too hard to reverse engineer
+ *        it.
+ *        Graham Jones, August 2017.
+ */
+
 #include <espressif/esp_common.h>
-//#include <esp8266.h>
+#include <espressif/esp8266/esp8266.h>
 //#include <espressif/esp_misc.h> // sdk_os_delay_us
 //#include <espressif/esp_system.h>
 #include "i2c.h"
+#include "gpio.h"
 
 #define I2C_DEBUG true
 
@@ -45,6 +56,96 @@ static uint8_t freq ;
 static uint8_t g_scl_pin;
 static uint8_t g_sda_pin;
 
+//Return the Multiplexer value associated with gpio Pin number gpioPin
+int gpioPin2Mux(int gpioPin) {
+  switch (gpioPin) {
+  case 0:
+    return GPIO_PIN_REG_0;
+  case 1:
+    return GPIO_PIN_REG_1;
+  case 2:
+    return GPIO_PIN_REG_2;
+  case 3:
+    return GPIO_PIN_REG_3;
+  case 4:
+    return GPIO_PIN_REG_4;
+  case 5:
+    return GPIO_PIN_REG_5;
+  case 6:
+    return GPIO_PIN_REG_6;
+  case 7:
+    return GPIO_PIN_REG_7;
+  case 8:
+    return GPIO_PIN_REG_8;
+  case 9:
+    return GPIO_PIN_REG_9;
+  case 10:
+    return GPIO_PIN_REG_10;
+  case 11:
+    return GPIO_PIN_REG_11;
+  case 12:
+    return GPIO_PIN_REG_12;
+  case 13:
+    return GPIO_PIN_REG_13;
+  case 14:
+    return GPIO_PIN_REG_14;
+  case 15:
+    return GPIO_PIN_REG_15;
+  default:
+    return -1;
+  }
+  
+}
+
+//Return the gpio func value associated with gpio Pin number gpioPin
+int gpioPin2Func(int gpioPin) {
+  switch (gpioPin) {
+    case 0:
+      return FUNC_GPIO0;
+    case 1:
+      return FUNC_GPIO1;
+    case 2:
+      return FUNC_GPIO2;
+    case 3:
+      return FUNC_GPIO3;
+    case 4:
+      return FUNC_GPIO4;
+    case 5:
+      return FUNC_GPIO5;
+    case 6:
+      return FUNC_GPIO6;
+    case 7:
+      return FUNC_GPIO7;
+    case 8:
+      return FUNC_GPIO8;
+    case 9:
+      return FUNC_GPIO9;
+    case 10:
+      return FUNC_GPIO10;
+    default:
+      return -1;
+    }
+}
+
+#define I2C_GPIO_SET(pin)  \
+    gpio_output_set(1<<pin,0,1<<pin,0)
+
+#define I2C_GPIO_CLR(pin) \
+    gpio_output_set(0,1<<pin,1<<pin,0)
+
+#define gpio_write(pin,val) \
+    if(val) I2C_GPIO_SET(pin);\
+    else I2C_GPIO_CLR(pin)
+
+// return value of GPIO pin pin.
+uint8 gpio_read(pin) {
+  uint8 val; 
+  ETS_INTR_LOCK(); 
+  val = GPIO_INPUT_GET(GPIO_ID_PIN(pin));
+  ETS_INTR_UNLOCK(); 
+  return val;
+}
+
 inline bool i2c_status(void)
 {
     return started;
@@ -52,13 +153,28 @@ inline bool i2c_status(void)
 
 void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
 {
-	printf("i2c_init - GJ Version\n");
+  printf("i2c_init - GJ Version\n");
     started = false;
     flag = false ;
     g_scl_pin = scl_pin;
     g_sda_pin = sda_pin;
 
-    // Just to prevent these pins floating too much if not connected.
+    int sda_mux, scl_mux;
+    int sda_func, scl_func;
+
+    PIN_FUNC_SELECT(gpioPin2Mux(g_sda_pin), gpioPin2Func(g_sda_pin));
+    PIN_FUNC_SELECT(gpioPin2Mux(g_scl_pin), gpioPin2FUnc(g_scl_pin));
+
+    GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
+    GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_sda_pin));
+    GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
+    GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_scl_pin));
+
+    I2C_MASTER_SDA_HIGH_SCL_HIGH();
+
+    ETS_GPIO_INTR_ENABLE() ;
+
+    /*    // Just to prevent these pins floating too much if not connected.
     gpio_set_pullup(g_scl_pin, 1, 1);
     gpio_set_pullup(g_sda_pin, 1, 1);
 
@@ -68,9 +184,9 @@ void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
     // I2C bus idle state.
     gpio_write(g_scl_pin, 1);
     gpio_write(g_sda_pin, 1);
-
+    */
     // Prevent user, if frequency is high
-    if (sdk_system_get_cpu_freq() == SYS_CPU_80MHZ)
+    if (system_get_cpu_freq() == SYS_CPU_80MHZ)
         if (I2C_CUSTOM_DELAY_80MHZ == 1)
             debug("Max frequency is 320Khz at 80MHz");
 
@@ -131,7 +247,7 @@ static inline void clear_sda(void)
 void i2c_start(void)
 {
     uint32_t clk_stretch = CLK_STRETCH;
-    freq = sdk_system_get_cpu_freq();
+    freq = system_get_cpu_freq();
     if (started) { // if started, do a restart cond
         // Set SDA to 1
         (void) read_sda();

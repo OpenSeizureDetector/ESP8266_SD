@@ -28,8 +28,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
+
+#ifdef ESPRESSIF_SDK
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
+#endif
 
 #ifdef	__cplusplus
 extern "C" {

@@ -22,8 +22,8 @@
 #include "espressif/esp_common.h"
 
 
-#ifdef ESP8266_RTOS
-#include <i2c_master.h>
+#ifdef ESPRESSIF_SDK
+#include <i2c.h>
 #else
 #include "../i2c/i2c.h"
 #endif
