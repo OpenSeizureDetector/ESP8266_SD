@@ -10,14 +10,13 @@
 #include "gpio.h"
 #include "i2c.h"
 #include "adxl345.h"
+#include "osd_app.h"
 
-#define USE_INTR 0   // Use interrupt to prompt for accelerometer data
-                     // Otherwise polls periodically to read from ADXL345 FIFO.
 // Define which GPIO pins are used to connect to the ADXL345 accelerometer.
-#define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5
-#define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
-#define INTR_PIN (13) // Wemos D1 Mini D7 = GPIO13
-#define SETUP_PIN (12)  // Wemos D1 Mini D6 = GPIO12
+//#define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5
+//#define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
+//#define INTR_PIN (13) // Wemos D1 Mini D7 = GPIO13
+//#define SETUP_PIN (12)  // Wemos D1 Mini D6 = GPIO12
 
 //GPIO OUTPUT SETTINGS
 #define  LED_IO_NUM  2
@@ -295,9 +294,9 @@ void receiveAccelDataTask(void *pvParameters)
       if ((ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS)==0)
 	  || (i==ACC_BUF_LEN)) finished = 1;
     }
-    //printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
-    //	   i,
-    //	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+    printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+    	   i,
+    	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
     /*for (int n=0;n<i;n++) {
       printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
       n,
