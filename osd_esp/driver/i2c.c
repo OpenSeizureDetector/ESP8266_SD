@@ -165,10 +165,22 @@ void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
     PIN_FUNC_SELECT(gpioPin2Mux(g_sda_pin), gpioPin2Func(g_sda_pin));
     PIN_FUNC_SELECT(gpioPin2Mux(g_scl_pin), gpioPin2Func(g_scl_pin));
 
-    GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
-    GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_sda_pin));
-    GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
-    GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_scl_pin));
+    GPIO_REG_WRITE(
+		   GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin)),
+		   GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin)))
+		   | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)
+		   ); //open drain
+    GPIO_REG_WRITE(
+		   GPIO_ENABLE_ADDRESS,
+		   GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_sda_pin)
+		   );
+    GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin)),
+		   GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin)))
+		   | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)
+		   ); //open drain;
+    GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS,
+		   GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_scl_pin)
+		   );
 
     // I2C bus idle state.
     gpio_write(g_scl_pin, 1);
@@ -176,18 +188,10 @@ void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
 
     ETS_GPIO_INTR_ENABLE() ;
 
-    /*    // Just to prevent these pins floating too much if not connected.
-    gpio_set_pullup(g_scl_pin, 1, 1);
-    gpio_set_pullup(g_sda_pin, 1, 1);
-
-    gpio_enable(g_scl_pin, GPIO_OUT_OPEN_DRAIN);
-    gpio_enable(g_sda_pin, GPIO_OUT_OPEN_DRAIN);
-
-    */
     // Prevent user, if frequency is high
-    if (system_get_cpu_freq() == SYS_CPU_80MHZ)
-        if (I2C_CUSTOM_DELAY_80MHZ == 1)
-            debug("Max frequency is 320Khz at 80MHz");
+    //if (system_get_cpu_freq() == SYS_CPU_80MHZ)
+    //    if (I2C_CUSTOM_DELAY_80MHZ == 1)
+    //        debug("Max frequency is 320Khz at 80MHz");
 }
 
 static inline void i2c_delay(void)
