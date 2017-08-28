@@ -6,8 +6,27 @@
 
 #include "esp_common.h"
 #include "gpio.h"
-#include "i2c_master.h"
+#include "i2c.h"
 #include "adxl345.h"
+
+// Define which GPIO pins are used to connect to the ADXL345 accelerometer.
+#define SCL_PIN (5)  // Wemos D1 Mini D1 = GPIO5
+#define SDA_PIN (4)  // Wemos D1 Mini D2 = GPIO4
+#define INTR_PIN (13) // Wemos D1 Mini D7 = GPIO13
+#define SETUP_PIN (12)  // Wemos D1 Mini D6 = GPIO12
+
+//GPIO OUTPUT SETTINGS
+#define  LED_IO_NUM  2
+#define  LED_IO_FUNC FUNC_GPIO2
+#define  LED_IO_PIN  GPIO_Pin_2
+
+//GPIO INPUT SETTINGS
+#define  BUTTON_IO_NUM   12
+#define  BUTTON_IO_FUNC  FUNC_GPIO12
+#define  BUTTON_IO_PIN   GPIO_Pin_12
+
+
+
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -57,15 +76,6 @@ uint32 user_rf_cal_sector_set(void)
 #define ETS_GPIO_INTR_ENABLE()  _xt_isr_unmask(1 << ETS_GPIO_INUM)  //ENABLE INTERRUPTS
 #define ETS_GPIO_INTR_DISABLE() _xt_isr_mask(1 << ETS_GPIO_INUM)    //DISABLE INTERRUPTS
 
-//GPIO OUTPUT SETTINGS
-#define  LED_IO_NUM  2
-#define  LED_IO_FUNC FUNC_GPIO2
-#define  LED_IO_PIN  GPIO_Pin_2
-
-//GPIO INPUT SETTINGS
-#define  BUTTON_IO_NUM   12
-#define  BUTTON_IO_FUNC  FUNC_GPIO12
-#define  BUTTON_IO_PIN   GPIO_Pin_12
 
 void io_intr_handler(void)
 {
@@ -85,9 +95,8 @@ void io_intr_handler(void)
 
 void i2cScanTask(void *pvParameters) {
   uint8_t i;
-  printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",I2C_MASTER_SCL_GPIO,
-	 I2C_MASTER_SDA_GPIO);
-  i2c_master_gpio_init();
+  printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+  i2c_init(SCL_PIN,SDA_PIN);
   printf("i2c_init() complete\n");
 
   while(1) {

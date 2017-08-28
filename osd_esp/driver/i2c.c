@@ -163,14 +163,17 @@ void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
     int sda_func, scl_func;
 
     PIN_FUNC_SELECT(gpioPin2Mux(g_sda_pin), gpioPin2Func(g_sda_pin));
-    PIN_FUNC_SELECT(gpioPin2Mux(g_scl_pin), gpioPin2FUnc(g_scl_pin));
+    PIN_FUNC_SELECT(gpioPin2Mux(g_scl_pin), gpioPin2Func(g_scl_pin));
 
     GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_sda_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
     GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_sda_pin));
     GPIO_REG_WRITE(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin)), GPIO_REG_READ(GPIO_PIN_ADDR(GPIO_ID_PIN(g_scl_pin))) | GPIO_PIN_PAD_DRIVER_SET(GPIO_PAD_DRIVER_ENABLE)); //open drain;
     GPIO_REG_WRITE(GPIO_ENABLE_ADDRESS, GPIO_REG_READ(GPIO_ENABLE_ADDRESS) | (1 << g_scl_pin));
 
-    I2C_MASTER_SDA_HIGH_SCL_HIGH();
+    //I2C_MASTER_SDA_HIGH_SCL_HIGH();
+    // I2C bus idle state.
+    gpio_write(g_scl_pin, 1);
+    gpio_write(g_sda_pin, 1);
 
     ETS_GPIO_INTR_ENABLE() ;
 
@@ -181,9 +184,6 @@ void i2c_init(uint8_t scl_pin, uint8_t sda_pin)
     gpio_enable(g_scl_pin, GPIO_OUT_OPEN_DRAIN);
     gpio_enable(g_sda_pin, GPIO_OUT_OPEN_DRAIN);
 
-    // I2C bus idle state.
-    gpio_write(g_scl_pin, 1);
-    gpio_write(g_sda_pin, 1);
     */
     // Prevent user, if frequency is high
     if (system_get_cpu_freq() == SYS_CPU_80MHZ)
