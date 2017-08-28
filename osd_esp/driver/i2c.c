@@ -138,7 +138,7 @@ int gpioPin2Func(int gpioPin) {
     else I2C_GPIO_CLR(pin)
 
 // return value of GPIO pin pin.
-uint8 gpio_read(pin) {
+uint8 gpio_read(int pin) {
   uint8 val; 
   ETS_INTR_LOCK(); 
   val = GPIO_INPUT_GET(GPIO_ID_PIN(pin));

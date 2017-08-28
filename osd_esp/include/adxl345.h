@@ -250,6 +250,6 @@ bool ADXL345_readRegisterBit(uint8_t reg, uint8_t pos);
 
 // Function prototypes
 uint8_t ADXL345_init(int scl, int sca);
-
+uint8_t ADXL345_findDevice();
 
 #endif

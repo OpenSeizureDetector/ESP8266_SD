@@ -117,6 +117,12 @@ typedef struct {
     GPIO_INT_TYPE    GPIO_IntrType; /**< GPIO interrupt type */
 } GPIO_ConfigTypeDef;
 
+  // Added by GJ because compilation fails in C99 mode without it.
+  // I do not know why these are not defined in this file in the Espressif version.
+  void gpio_config(GPIO_ConfigTypeDef *pGPIOConfig);
+  void gpio_output_set(uint8_t set_mask, uint8_t clear_mask,
+		       uint8_t enable_mask, uint8_t disable_mask);
+
 /** \defgroup Driver_APIs Driver APIs
   * @brief Driver APIs
   */

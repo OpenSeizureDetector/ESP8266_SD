@@ -209,7 +209,8 @@ void monitorAdxl345Task(void *pvParameters) {
     printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
     printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
     printf("FIFO_STATUS= %d\n",ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS));
-    printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,gpio_read(INTR_PIN));
+    //    printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,gpio_read(INTR_PIN));
+    printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,GPIO_INPUT_GET(INTR_PIN));
     // Read the data from FIFO - we probably do not really want this!
     /*int i;
     for (i=0;i<33;i++) {
