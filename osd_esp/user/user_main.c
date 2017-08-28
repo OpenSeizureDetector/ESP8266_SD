@@ -4,6 +4,8 @@
  *  GPIO code based on https://github.com/espressif/esp8266-rtos-sample-code/tree/master/02Peripheral/GPIOtest
  */
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include "esp_common.h"
 #include "gpio.h"
 #include "i2c.h"
@@ -25,6 +27,10 @@
 #define  BUTTON_IO_FUNC  FUNC_GPIO12
 #define  BUTTON_IO_PIN   GPIO_Pin_12
 
+#define ACC_BUF_LEN 50
+
+static xQueueHandle tsqueue;
+static xQueueHandle commsQueue;
 
 
 
@@ -93,6 +99,15 @@ void io_intr_handler(void)
     GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, status);       //CLEAR THE STATUS IN THE W1 INTERRUPT REGISTER
 }
 
+
+void gpio_intr_handler(uint8_t gpio_num)
+{
+  //printf("ISR - GPIO_%d\n",gpio_num);
+  uint32_t now = xTaskGetTickCountFromISR();
+  xQueueSendToBackFromISR(tsqueue, &now, NULL);
+}
+
+
 void i2cScanTask(void *pvParameters) {
   uint8_t i;
   printf("i2cScanTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
@@ -104,6 +119,172 @@ void i2cScanTask(void *pvParameters) {
     printf("ADXL found at address %x\n",i);
     vTaskDelay(5000 / portTICK_RATE_MS);
   } 
+}
+
+/**
+ * Initialise the ADXL345 accelerometer trip to use a FIFO buffer
+ * and send an interrupt when the FIFO is full.
+ */
+void setup_adxl345() {
+  uint8_t devAddr;
+  
+  printf("setup_adxl345()\n");
+  
+  // Initialise the ADXL345 i2c interface and search for the ADXL345
+  devAddr = ADXL345_init(SCL_PIN,SDA_PIN);
+  printf("ADXL345 found at address 0x%x\n",devAddr);
+  
+  //printf("Clearing Settings...\n");
+  //ADXL345_clearSettings();
+  
+  // Bypass the FIFO buffer
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,6,0);
+  ADXL345_writeRegisterBit(ADXL345_REG_FIFO_CTL,7,0);
+  
+  printf("Setting 4G range\n");
+  ADXL345_setRange(ADXL345_RANGE_4G);
+  
+  printf("Setting to 100Hz data rate\n");
+  ADXL345_setDataRate(ADXL345_DATARATE_100HZ);
+  //ADXL345_setDataRate(ADXL345_DATARATE_12_5HZ);
+  
+  /*printf("Setting Data Format - interupts active low.\n");
+    if (ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0x2B)==-1) {
+    printf("*** Error setting Data Format ***\n");
+    } else {
+    printf("Data Format Set to 0x%02x\n",
+    ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+    }
+  */
+  // Set to 4g range, 4mg/LSB resolution, interrupts active high.
+  ADXL345_writeRegister8(ADXL345_REG_DATA_FORMAT,0b00001001);
+  
+  printf("Starting Measurement\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_POWER_CTL,0x08)==-1) {
+    printf("*** Error setting measurement Mode ***\n");
+  } else {
+    printf("Measurement Mode set to 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  }
+  
+  
+  printf("Enabling Data Ready Interrupt\n");
+  if (ADXL345_writeRegister8(ADXL345_REG_INT_ENABLE,0x80)==-1) {
+    printf("*** Error enabling interrupt ***\n");
+  } else {
+    printf("Interrupt Enabled - set to 0x%02x\n",
+	   ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  }
+  
+  
+  printf("************************************\n");
+  printf("DEV_ID=     0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DEVID));
+  printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+  printf("BW_RATE=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_BW_RATE));
+  printf("DATA_FORMAT=0x%02x\n",ADXL345_readRegister8(ADXL345_REG_DATA_FORMAT));
+  printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+  printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
+  printf("POWER_CTL=  0x%02x\n",ADXL345_readRegister8(ADXL345_REG_POWER_CTL));
+  printf("************************************\n");
+  
+}
+
+
+/**
+ * monitor the ADXL345 regularly to check register states.
+ * Assumes it has been initialised by calling setup_adxl345() before
+ * this task is started.
+ */
+void monitorAdxl345Task(void *pvParameters) {
+  ADXL345_IVector r;
+  
+  while(1) {
+    printf("*****************************************\n");
+    printf("*        Periodic Monitoring            *\n");
+    printf("INT_ENABLE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_ENABLE));
+    printf("INT_MAP=    0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_MAP));
+    printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+    printf("FIFO_STATUS= %d\n",ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS));
+    printf("Interrupt Pin GPIO%d value = %d\n",INTR_PIN,gpio_read(INTR_PIN));
+    // Read the data from FIFO - we probably do not really want this!
+    int i;
+    for (i=0;i<33;i++) {
+      r = ADXL345_readRaw();
+      printf("r.x=%7d, r.y=%7d, r.z=%7d\n",r.XAxis,r.YAxis,r.ZAxis);
+    }
+    printf("INT_SOURCE= 0x%02x\n",ADXL345_readRegister8(ADXL345_REG_INT_SOURCE));
+    printf("*****************************************\n");
+    vTaskDelay(3000 / portTICK_RATE_MS);
+  }
+}
+
+
+/* 
+ *  Initialises the ADX345 accelerometer, then waits for queue message from
+ *  interrupt handler to say data is ready.
+ */
+void receiveAccelDataTask(void *pvParameters)
+{
+  ADXL345_IVector r;
+  ADXL345_IVector buf[ACC_BUF_LEN];
+  
+  printf("receiveAccelDataTask - SCL=GPIO%d, SDA=GPIO%d\n",SCL_PIN,SDA_PIN);
+  setup_adxl345();
+  ADXL345_enableFifo();
+  printf("Waiting for accelerometer data ready interrupt on gpio %d...\r\n", INTR_PIN);
+  xQueueHandle *tsqueue = (xQueueHandle *)pvParameters;
+  
+  // Set the Interrupt pin to be an input.
+  //gpio_enable(INTR_PIN, GPIO_INPUT);
+  //gpio_set_interrupt(INTR_PIN, GPIO_INTTYPE_EDGE_POS, gpio_intr_handler);
+
+  printf("SETUP INTERRUPT..\r\n");
+  GPIO_ConfigTypeDef io_in_conf;
+  io_in_conf.GPIO_IntrType = GPIO_PIN_INTR_POSEDGE;
+  io_in_conf.GPIO_Mode = GPIO_Mode_Input;
+  io_in_conf.GPIO_Pin = INTR_PIN;
+  io_in_conf.GPIO_Pullup = GPIO_PullUp_DIS;
+  gpio_config(&io_in_conf);
+  gpio_intr_handler_register(gpio_intr_handler, NULL);
+  ETS_GPIO_INTR_ENABLE();
+
+  
+  // Start the routine monitoring task
+  xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
+  
+  while(1) {
+    uint32_t data_ts;
+    xQueueReceive(*tsqueue, &data_ts, portMAX_DELAY);
+    data_ts *= portTICK_RATE_MS;
+    
+    /// Now read all the data from the FIFO buffer on the ADXL345.
+    int i=0;
+    bool finished = false;
+    while (!finished) {
+      r = ADXL345_readRaw();
+      buf[i] = r;
+      i++;
+      printf("%d:%d,  receiveAccelDataTask: %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+           i,
+           ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS),
+           data_ts,r.XAxis,r.YAxis,r.ZAxis);
+      
+      // have we emptied the fifo or filled our buffer yet?
+      if ((ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS)==0)
+	  || (i==ACC_BUF_LEN)) finished = 1;
+    }
+    //printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+    //	   i,
+    //	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+    /*for (int n=0;n<i;n++) {
+      printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
+      n,
+      buf[n].XAxis,buf[n].YAxis,buf[n].ZAxis);
+      }
+    */
+
+    // Call the acceleration handler in analysis.c
+    //accel_handler(buf,i);
+  }
 }
 
 
@@ -120,6 +301,7 @@ void user_init(void)
     wifi_set_opmode(NULL_MODE);
     wifi_set_sleep_type(MODEM_SLEEP_T);
     
+    // Initial flashing of LED to prove it is alive!
     printf("LED Toggle using switch attached to GPIO12\n");
     GPIO_ConfigTypeDef io_out_conf;
     io_out_conf.GPIO_IntrType = GPIO_PIN_INTR_DISABLE;
@@ -140,18 +322,31 @@ void user_init(void)
     GPIO_OUTPUT_SET(LED_IO_NUM, 0);   // LED On
     vTaskDelay(100);
 
-    printf("SETUP switch INTERRUPT..\r\n");
-    GPIO_ConfigTypeDef io_in_conf;
-    io_in_conf.GPIO_IntrType = GPIO_PIN_INTR_NEGEDGE;
-    io_in_conf.GPIO_Mode = GPIO_Mode_Input;
-    io_in_conf.GPIO_Pin = BUTTON_IO_PIN;
-    io_in_conf.GPIO_Pullup = GPIO_PullUp_EN;
-    gpio_config(&io_in_conf);
-
-    gpio_intr_handler_register(io_intr_handler, NULL);
+    //printf("SETUP switch INTERRUPT..\r\n");
+    //GPIO_ConfigTypeDef io_in_conf;
+    //io_in_conf.GPIO_IntrType = GPIO_PIN_INTR_NEGEDGE;
+    //io_in_conf.GPIO_Mode = GPIO_Mode_Input;
+    //io_in_conf.GPIO_Pin = BUTTON_IO_PIN;
+    //io_in_conf.GPIO_Pullup = GPIO_PullUp_EN;
+    //gpio_config(&io_in_conf);
+    //gpio_intr_handler_register(io_intr_handler, NULL);
     ETS_GPIO_INTR_ENABLE();
 
 
-    xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
+    // reate the freeRTOS queues we use for comms between tasks
+    tsqueue = xQueueCreate(2, sizeof(uint32_t));
+    commsQueue = xQueueCreate(2, sizeof(uint32_t));
+
+
+    //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
+
+    // Start the routine monitoring task
+    setup_adxl345();
+    ADXL345_enableFifo();
+    //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
+    xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
+		256, &tsqueue, 2, NULL);
+
+    
 }
 
