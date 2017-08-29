@@ -119,6 +119,7 @@ typedef struct {
 
   // Added by GJ because compilation fails in C99 mode without it.
   // I do not know why these are not defined in this file in the Espressif version.
+  // Used some information from http://cholla.mmto.org/esp8266/gpio/
   void gpio_config(GPIO_ConfigTypeDef *pGPIOConfig);
   void gpio_output_set(uint8_t set_mask, uint8_t clear_mask,
 		       uint8_t enable_mask, uint8_t disable_mask);
