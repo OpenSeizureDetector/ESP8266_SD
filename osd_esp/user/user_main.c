@@ -32,6 +32,7 @@
 
 
 /* GLOBAL VARIABLES */
+int debug = 1;
 Sd_Settings sdS;        // SD setings structure.
 Wifi_Settings wifiS;    // Wifi Settings structure.
 

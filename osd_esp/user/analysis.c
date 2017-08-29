@@ -35,16 +35,11 @@
 
 
 /* GLOBAL VARIABLES */
-uint32_t num_samples = NSAMP_MAX;
-int32_t accData[NSAMP_MAX];   
+// Initialise the Analysis Data Structure An_Data (anD)
+An_Data anD;
+
 fft_complex_t *fftData;   // spectrum calculated by FFT
-short fftResults[NSAMP_MAX/2];  // FFT results
 
-int simpleSpec[10];   // simplified spectrum - 0-10 Hz
-
-int accDataPos = 0;   // Position in accData of last point in time series.
-int accDataFull = 0;  // Flag so we know when we have a complete buffer full
-                      // of data.
 
 
 /*************************************************************
@@ -76,40 +71,40 @@ int getAmpl(int nBin) {
 int alarm_check() {
   bool inAlarm;
   int i;
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check nMin=%d, nMax=%d",nMin,nMax);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Alarm Check anD.nMin=%d, nMax=%d",anD.nMin,anD.nMax);
 
   inAlarm = false;
-  alarmRoi = 0;
-  if (sdMode == SD_MODE_FFT) {
-    inAlarm = (roiPower>alarmThresh) && (roiRatio>alarmRatioThresh);
+  anD.alarmRoi = 0;
+  if (sdS.sdMode == SD_MODE_FFT) {
+    inAlarm = (anD.roiPower>sdS.alarmThresh) && (anD.roiRatio>sdS.alarmRatioThresh);
   }
   // Check each of the multiple ROIs - any one being in alarm state is an alarm.
-  else if (sdMode == SD_MODE_FFT_MULTI_ROI) {
-    if (roiPower>alarmThresh) {
+  else if (sdS.sdMode == SD_MODE_FFT_MULTI_ROI) {
+    if (anD.roiPower>sdS.alarmThresh) {
       for (i=0;i<=3;i++) {
-	if (roiRatios[i]>alarmRatioThresh) {
+	if (anD.roiRatios[i]>sdS.alarmRatioThresh) {
 	  inAlarm = true;
-	  alarmRoi = i;
-	  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"doAnalysis() - alarm in ROI %d", alarmRoi);
+	  anD.alarmRoi = i;
+	  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"doAnalysis() - alarm in ROI %d", anD.alarmRoi);
 	}
       }
     }
   }
   
   if (inAlarm) {
-    alarmCount+=samplePeriod;
-    if (alarmCount>alarmTime) {
-      alarmState = 2;
-    } else if (alarmCount>warnTime) {
-      alarmState = 1;
+    anD.alarmCount+=sdS.samplePeriod;
+    if (anD.alarmCount>sdS.alarmTime) {
+      anD.alarmState = 2;
+    } else if (anD.alarmCount>sdS.warnTime) {
+      anD.alarmState = 1;
     }
   } else {
-    alarmState = 0;
-    alarmCount = 0;
+    anD.alarmState = 0;
+    anD.alarmCount = 0;
   }
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",alarmState,alarmCount);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"alarmState = %d, alarmCount=%d",anD.alarmState,anD.alarmCount);
 
-  return(alarmState);
+  return(anD.alarmState);
 }
 
 
@@ -122,27 +117,27 @@ void accel_handler(ADXL345_IVector *data, uint32_t num_samples) {
   int i;
 
   //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"accel_handler(): num_samples=%d",num_samples);
-  if (sdMode==SD_MODE_RAW) {
+  if (sdS.sdMode==SD_MODE_RAW) {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"num_samples=%d",num_samples);
-    sendRawData(data,num_samples);
+    //sendRawData(data,num_samples);
   } else {
     // Add the new data to the accData buffer
     for (i=0;i<(int)num_samples;i++) {
       // Wrap around the buffer if necessary
-      if (accDataPos>=nSamp) { 
-	accDataPos = 0;
-	accDataFull = 1;
+      if (anD.accDataPos>=anD.nSamp) { 
+	anD.accDataPos = 0;
+	anD.accDataFull = 1;
 	do_analysis();
 	break;
       }
       // add good data to the accData array
-      accData[accDataPos] =
+      anD.accData[anD.accDataPos] =
 	abs(data[i].XAxis)
 	+ abs(data[i].YAxis)
 	+ abs(data[i].ZAxis);
-	accDataPos++;
+	anD.accDataPos++;
     }
-    latestAccelData = data[num_samples-1];
+    anD.latestAccelData = data[num_samples-1];
   }
 }
 
@@ -154,24 +149,24 @@ void check_fall() {
   int i,j;
   int minAcc, maxAcc;
 
-  int fallWindowSamp = (fallWindow*sampleFreq)/1000; // Convert ms to samples.
+  int fallWindowSamp = (sdS.fallWindow*sdS.sampleFreq)/1000; // Convert ms to samples.
   APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - fallWindowSamp=%d",
 	  fallWindowSamp);
   // Move window through sample buffer, checking for fall.
-  fallDetected = 0;
-  for (i=0;i<nSamp-fallWindowSamp;i++) {  // i = window start point
+  anD.fallDetected = 0;
+  for (i=0;i<anD.nSamp-fallWindowSamp;i++) {  // i = window start point
     // Find max and min acceleration within window.
-    minAcc = accData[i];
-    maxAcc = accData[i];
+    minAcc = anD.accData[i];
+    maxAcc = anD.accData[i];
     for (j=0;j<fallWindowSamp;j++) {  // j = position within window
-      if (accData[i+j]<minAcc) minAcc = accData[i+j];
-      if (accData[i+j]>maxAcc) maxAcc = accData[i+j];
+      if (anD.accData[i+j]<minAcc) minAcc = anD.accData[i+j];
+      if (anD.accData[i+j]>maxAcc) maxAcc = anD.accData[i+j];
     }
-    if ((minAcc<fallThreshMin) && (maxAcc>fallThreshMax)) {
+    if ((minAcc<sdS.fallThreshMin) && (maxAcc>sdS.fallThreshMax)) {
       if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - minAcc=%d, maxAcc=%d",
 	      minAcc,maxAcc);
       if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"check_fall() - ****FALL DETECTED****");
-      fallDetected = 1;
+      anD.fallDetected = 1;
       return;
     }
   }
@@ -192,118 +187,118 @@ void do_analysis() {
   // Stored as an integer which is 1000 x the frequency resolution in Hz.
 
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis");
-  freqRes = (int)(1000*sampleFreq/nSamp);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, freqRes=%d Hz/(1000 bins)",
-		     1000*nSamp/sampleFreq,freqRes);
+  anD.freqRes = (int)(1000*sdS.sampleFreq/anD.nSamp);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"T=%d ms, anD.freqRes=%d Hz/(1000 bins)",
+		     1000*anD.nSamp/sdS.sampleFreq,anD.freqRes);
   // Set the frequency bounds for the analysis in fft output bin numbers.
-  nMin = (int)(1000*alarmFreqMin/freqRes);
-  nMax = (int)(1000*alarmFreqMax/freqRes);
+  anD.nMin = (int)(1000*sdS.alarmFreqMin/anD.freqRes);
+  anD.nMax = (int)(1000*sdS.alarmFreqMax/anD.freqRes);
 
   // Set frequency bounds for multi-ROI mode
   // ROI 0 is the whole ROI
-  nMins[0] = nMin;
-  nMaxs[0] = nMax;
+  anD.nMins[0] = anD.nMin;
+  anD.nMaxs[0] = anD.nMax;
 
   // ROI 1 is the lower half
-  nMins[1] = nMin;
-  nMaxs[1] = (nMin+nMax)/2;
+  anD.nMins[1] = anD.nMin;
+  anD.nMaxs[1] = (anD.nMin+anD.nMax)/2;
 
   // ROI 2 is the upper half
-  nMins[2] = (nMin+nMax)/2;
-  nMaxs[2] = nMax;
+  anD.nMins[2] = (anD.nMin+anD.nMax)/2;
+  anD.nMaxs[2] = anD.nMax;
 
   // ROI 3 is the middle half
-  nMins[3] = nMin + (nMax-nMin)/4;
-  nMaxs[3] = nMax - (nMax-nMin)/4;
+  anD.nMins[3] = anD.nMin + (anD.nMax-anD.nMin)/4;
+  anD.nMaxs[3] = anD.nMax - (anD.nMax-anD.nMin)/4;
   
   // Calculate the bin number of the cutoff frequency
-  nFreqCutoff = (int)(1000*freqCutoff/freqRes);  
+  anD.nFreqCutoff = (int)(1000*sdS.freqCutoff/anD.freqRes);  
 
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  nMin=%d, nMax=%d, nFreqCutoff=%d, fftBits=%d, nSamp=%d",
-		     nMin,nMax,nFreqCutoff,fftBits,nSamp);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis():  anD.nMin=%d, nMax=%d, anD.nFreqCutoff=%d, anD.fftBits=%d, anD.nSamp=%d",
+		     anD.nMin,anD.nMax,anD.nFreqCutoff,anD.fftBits,anD.nSamp);
 
   if (debug) for (i=0;i<=3;i++) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis(): nMins[%d]=%d, nMaxs[%d]=%d",
-	      i,nMins[i],i,nMaxs[i]);
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"do_analysis(): anD.nMins[%d]=%d, nMaxs[%d]=%d",
+	      i,anD.nMins[i],i,anD.nMaxs[i]);
     }
 
   // Do the FFT conversion from time to frequency domain.
   // The output is stored in accData.  fftData is a pointer to accData.
-  fft_fftr((fft_complex_t *)accData,fftBits);
+  fft_fftr((fft_complex_t *)anD.accData,anD.fftBits);
 
 
   // Ignore position zero though (DC component)
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Calculating specPower - nSamp=%d",nSamp);
-  specPower = 0;
-  for (i=1;i<nSamp/2;i++) {
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Calculating anD.specPower - anD.nSamp=%d",anD.nSamp);
+  anD.specPower = 0;
+  for (i=1;i<anD.nSamp/2;i++) {
     // Find absolute value of the imaginary fft output.
-    if (i<=nFreqCutoff) {
-      specPower = specPower + getMagnitude(fftData[i]);
+    if (i<=anD.nFreqCutoff) {
+      anD.specPower = anD.specPower + getMagnitude(fftData[i]);
     } else {
       //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"i = %d, zeroing data above cutoff frequency",i);
       fftData[i].r = 0;
     }
     // fftResults is used by UI to display spectrum.
-    fftResults[i] = getMagnitude(fftData[i]);
+    anD.fftResults[i] = getMagnitude(fftData[i]);
   }
   // specPower is average power per bin for whole spectrum.
-  specPower = specPower/(nSamp/2);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld",specPower);
+  anD.specPower = anD.specPower/(anD.nSamp/2);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%d",anD.specPower);
 
   // calculate spectrum power in the region of interest
-  roiPower = 0;
-  for (int i=nMin;i<nMax;i++) {
-    roiPower = roiPower + getMagnitude(fftData[i]);
+  anD.roiPower = 0;
+  for (int i=anD.nMin;i<anD.nMax;i++) {
+    anD.roiPower = anD.roiPower + getMagnitude(fftData[i]);
   }
   // roiPower is average power per bin within ROI.
-  roiPower = roiPower/(nMax-nMin);
+  anD.roiPower = anD.roiPower/(anD.nMax-anD.nMin);
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld, roiPower=%ld",
-		     specPower, roiPower);
-  if  (specPower!=0) {
-    roiRatio = 10 * roiPower/specPower;
+		     anD.specPower, anD.roiPower);
+  if  (anD.specPower!=0) {
+    anD.roiRatio = 10 * anD.roiPower/anD.specPower;
   } else {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING: specPower=%ld, setting ratio to zero",
-		     specPower);
-    roiRatio = 0;
+		       anD.specPower);
+    anD.roiRatio = 0;
   }
 
   // calculate spectrum power in each of the regions of interest
   // for multi-ROI mode.
-  roiPowers[0] = roiPower;  
+  anD.roiPowers[0] = anD.roiPower;  
   for (n=1;n<=3;n++) {
-    roiPowers[n]=0;
-    for (int i=nMins[n];i<nMaxs[n];i++) {
-      roiPowers[n] = roiPowers[n] + getMagnitude(fftData[i]);
+    anD.roiPowers[n]=0;
+    for (int i=anD.nMins[n];i<anD.nMaxs[n];i++) {
+      anD.roiPowers[n] = anD.roiPowers[n] + getMagnitude(fftData[i]);
     }
     // roiPower is average power per bin within ROI.
-    roiPowers[n] = roiPowers[n]/(nMaxs[n]-nMins[n]);
-    if (specPower!=0)
-      roiRatios[n] = 10 * roiPowers[n]/specPower;
+    anD.roiPowers[n] = anD.roiPowers[n]/(anD.nMaxs[n]-anD.nMins[n]);
+    if (anD.specPower!=0)
+      anD.roiRatios[n] = 10 * anD.roiPowers[n]/anD.specPower;
     else
-      roiRatios[n] = 0;
-    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower[%d]=%ld",n,roiPowers[n]);
+      anD.roiRatios[n] = 0;
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"roiPower[%d]=%d",n,anD.roiPowers[n]);
   }
   
 
   // Calculate the simplified spectrum - power in 1Hz bins.
   for (int ifreq=0;ifreq<10;ifreq++) {
-    int binMin = 1 + 1000*ifreq/freqRes;    // add 1 to loose dc component
-    int binMax = 1 + 1000*(ifreq+1)/freqRes;
-    simpleSpec[ifreq]=0;
+    int binMin = 1 + 1000*ifreq/anD.freqRes;    // add 1 to loose dc component
+    int binMax = 1 + 1000*(ifreq+1)/anD.freqRes;
+    anD.simpleSpec[ifreq]=0;
     for (int ibin=binMin;ibin<binMax;ibin++) {
-      simpleSpec[ifreq] = simpleSpec[ifreq] + getMagnitude(fftData[ibin]);
+      anD.simpleSpec[ifreq] = anD.simpleSpec[ifreq] + getMagnitude(fftData[ibin]);
     }
-    simpleSpec[ifreq] = simpleSpec[ifreq] / (binMax-binMin);
-    
+    anD.simpleSpec[ifreq] = anD.simpleSpec[ifreq] / (binMax-binMin);
   }
 
-
+  alarm_check();
+  
   /* Start collecting new buffer of data */
   /* FIXME = it would be best to make this a rolling buffer and analyse it
   * more frequently.
   */
-  accDataPos = 0;
-  accDataFull = 0;
+  anD.accDataPos = 0;
+  anD.accDataFull = 0;
 }
 
 void analysis_init() {
@@ -311,35 +306,35 @@ void analysis_init() {
   int i,ns;
   // Zero all data arrays:
   for (i = 0; i<NSAMP_MAX; i++) {
-    accData[i] = 0;
+    anD.accData[i] = 0;
   }
 
   // Initialise analysis of accelerometer data.
   // get number of samples per period, and round up to a power of 2
-  nsInit = samplePeriod * sampleFreq;
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "samplePeriod=%d, sampleFreq=%d - nsInit=%d",
-	  samplePeriod,sampleFreq,nsInit);
+  nsInit = sdS.samplePeriod * sdS.sampleFreq;
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "sdS.samplePeriod=%d, sdS.sampleFreq=%d - nsInit=%d",
+	  sdS.samplePeriod,sdS.sampleFreq,nsInit);
 
   for (i=0;i<1000;i++) {
     ns = 2<<i;
       if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "i=%d  ns=%d nsInit = %d",
 	    i,ns,nsInit);
     if (ns >= nsInit) {
-      nSamp = ns;
-      fftBits = i;
+      anD.nSamp = ns;
+      anD.fftBits = i;
       break;
     }
   }
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG, "nSamp rounded up to %d",
-		     nSamp);
+		     anD.nSamp);
 
   
   /* Subscribe to acceleration data service */
-  //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sampleFreq);
+  //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"Analysis Init:  Subcribing to acceleration data at frequency %d Hz",sdS.sampleFreq);
   //accel_data_service_subscribe(25,accel_handler);
   // Choose update rate
-  //accel_service_set_sampling_rate(sampleFreq);
+  //accel_service_set_sampling_rate(sdS.sampleFreq);
 
-  fftData = (fft_complex_t*)accData;
+  fftData = (fft_complex_t*)anD.accData;
 }
 

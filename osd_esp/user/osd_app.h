@@ -202,6 +202,8 @@
 // global variables!
 typedef struct 
 {
+  int displaySpectrum;  // enable or disable spectrum display on watch screen.
+
   int samplePeriod;     // sample period in seconds.
   int sampleFreq;      // sampling frequency in Hz
                             //    (must be one of 10,25,50 or 100)
@@ -229,6 +231,47 @@ typedef struct {
 } Wifi_Settings;
 
 
+typedef struct {
+  int nFreqCutoff;     // bin number of cutoff frequency.
+  int nSamp;           // number of samples in sampling period
+                       //    (rounded up to a power of 2)
+  int fftBits;          // Size of fft data array - nSamp = 2^(fftBits)
+  int nMin, nMax;      // Bin number of region of interest boundaries.
+  int nMins[4],nMaxs[4]; // Bin numbers for four regions of interest.
+  int maxVal;       // Peak amplitude in spectrum.
+  int maxLoc;       // Location in output array of peak.
+  int maxFreq;      // Frequency corresponding to peak location.
+  long specPower;   // Average power of whole spectrum.
+  long roiPower;    // Average power of spectrum in region of interest
+  int roiRatio;     // ratio of roiPower to specPower (x10)
+  long roiPowers[4]; // array storing the four regions of interest powers
+  int roiRatios[4]; // array storing the four ROI ratios.
+  int freqRes;      // Actually 1000 x frequency resolution
+  int simpleSpec[10];  // Simplified spectrum - 1 to 10 Hz bins.
+  ADXL345_IVector latestAccelData;  // Latest accelerometer readings received.
+  int32_t accData[NSAMP_MAX];   
+  short fftResults[NSAMP_MAX/2];  // FFT results
+  int accDataPos;   // Position in accData of last point in time series.
+  int accDataFull;  // Flag so we know when we have a complete buffer full
+                      // of data.
+  int fallDetected;  // flag to say if fall is detected (<>0 is fall)
+
+  int isManAlarm;     // flag to say if a manual alarm has been raised.
+  int manAlarmTime;   // time (in sec) that manual alarm has been raised
+  int manAlarmPeriod; // time (in sec) that manual alarm is raised for
+  
+  int isMuted;       // flag to say if alarms are muted.
+  int muteTime;      // time (in sec) that alarms have been muted.
+  int mutePeriod;    // the time to mute alarms following long press of
+                     // UP button.
+  
+  int alarmState;    // 0 = OK, 1 = WARNING, 2 = ALARM, 3 = FALL
+  int alarmRoi;      // id number of ROI causing alarm.
+  int alarmCount;    // number of seconds that we have been in an alarm state.
+
+} An_Data;  // analysis Data
+
+
 
 
 
@@ -236,63 +279,11 @@ typedef struct {
 // Settings (obtained from default constants or persistent storage)
 extern int debug;            // enable or disable logging output
 extern Sd_Settings sdS;        // SD setings structure.
+extern An_Data anD;        // analysis data
 extern Wifi_Settings wifiS;    // Wifi setings structure.
-extern int displaySpectrum;  // enable or disable spectrum display on watch screen.
-extern int samplePeriod;    // sample period in seconds.
-extern int sampleFreq;      // sampling frequency in Hz
-                            //    (must be one of 10,25,50 or 100)
-extern int freqCutoff;      // frequency above which movement is ignored.
-extern int nFreqCutoff;     // bin number of cutoff frequency.
-extern int nSamp;           // number of samples in sampling period
-                            //    (rounded up to a power of 2)
-extern int fftBits;          // Size of fft data array - nSamp = 2^(fftBits)
-extern int dataUpdatePeriod; // period (in sec) between sending data to the phone
-extern int sdMode;          // Seizure Detector mode 0=normal, 1=raw, 2=filter
-extern int sampleFreq;      // Sample frequency in Hz.
-extern int alarmFreqMin;    // Minimum frequency (in Hz) for analysis region of interest.
-extern int alarmFreqMax;    // Maximum frequency (in Hz) for analysis region of interest.
-extern int nMin, nMax;      // Bin number of region of interest boundaries.
-extern int nMins[4],nMaxs[4]; // Bin numbers for four regions of interest.
-extern int warnTime;        // number of seconds above threshold to raise warning
-extern int alarmTime;       // number of seconds above threshold to raise alarm.
-extern int alarmThresh;     // Alarm threshold (average power of spectrum within
-                     //       region of interest.
-extern int alarmRatioThresh; // 10x Ratio of ROI power to Spectrum power to raise alarm.
 
-extern int accDataPos;   // Position in accData of last point in time series.
-extern int accDataFull;  // Flag so we know when we have a complete buffer full
-                      // of data.
-extern short fftResults[NSAMP_MAX/2];  // FFT results
-extern int simpleSpec[10];  // Simplified spectrum - 1 to 10 Hz bins.
-extern ADXL345_IVector latestAccelData;  // Latest accelerometer readings received.
-extern int maxVal;       // Peak amplitude in spectrum.
-extern int maxLoc;       // Location in output array of peak.
-extern int maxFreq;      // Frequency corresponding to peak location.
-extern long specPower;   // Average power of whole spectrum.
-extern long roiPower;    // Average power of spectrum in region of interest
-extern int roiRatio;     // ratio of roiPower to specPower (x10)
-extern long roiPowers[4]; // array storing the four regions of interest powers
-extern int roiRatios[4]; // array storing the four ROI ratios.
-extern int freqRes;      // Actually 1000 x frequency resolution
 
-extern int fallActive;    // fall detection active (0=inactive)
-extern int fallThreshMin; // fall detection minimum (lower) threshold (milli-g)
-extern int fallThreshMax; // fall detection maximum (upper) threshold (milli-g)
-extern int fallWindow;    // fall detection window (milli-seconds).
-extern int fallDetected;  // flag to say if fall is detected (<>0 is fall)
 
-extern int isManAlarm;     // flag to say if a manual alarm has been raised.
-extern int manAlarmTime;   // time (in sec) that manual alarm has been raised
-extern int manAlarmPeriod; // time (in sec) that manual alarm is raised for
-
-extern int isMuted;       // flag to say if alarms are muted.
-extern int muteTime;      // time (in sec) that alarms have been muted.
-extern int mutePeriod;    // the time to mute alarms following long press of
-                          // UP button.
-
-extern int alarmState;    // 0 = OK, 1 = WARNING, 2 = ALARM, 3 = FALL
-extern int alarmRoi;      // id number of ROI causing alarm.
-extern int alarmCount;    // number of seconds that we have been in an alarm state.
 
 
 /* Functions */
