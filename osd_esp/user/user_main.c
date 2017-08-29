@@ -30,9 +30,32 @@
 
 #define ACC_BUF_LEN 50
 
+
+/* GLOBAL VARIABLES */
+Sd_Settings sdS;        // SD setings structure.
+Wifi_Settings wifiS;    // Wifi Settings structure.
+
 static xQueueHandle tsqueue;
 static xQueueHandle commsQueue;
 
+
+void settings_init() {
+  sdS.samplePeriod = SAMPLE_PERIOD_DEFAULT;
+  sdS.sampleFreq = SAMPLE_FREQ_DEFAULT;
+  sdS.freqCutoff = FREQ_CUTOFF_DEFAULT;
+  sdS.dataUpdatePeriod = DATA_UPDATE_PERIOD_DEFAULT;
+  sdS.sdMode = SD_MODE_DEFAULT;
+  sdS.alarmFreqMin = ALARM_FREQ_MIN_DEFAULT;
+  sdS.alarmFreqMax = ALARM_FREQ_MAX_DEFAULT;
+  sdS.warnTime = WARN_TIME_DEFAULT;
+  sdS.alarmTime = ALARM_TIME_DEFAULT;
+  sdS.alarmThresh = ALARM_THRESH_DEFAULT;
+  sdS.alarmRatioThresh = ALARM_RATIO_THRESH_DEFAULT;
+  sdS.fallActive = FALL_ACTIVE_DEFAULT;
+  sdS.fallThreshMin = FALL_THRESH_MIN_DEFAULT;
+  sdS.fallThreshMax = FALL_THRESH_MAX_DEFAULT;
+  sdS.fallWindow = FALL_WINDOW_DEFAULT;
+}
 
 
 /******************************************************************************
@@ -306,7 +329,7 @@ void receiveAccelDataTask(void *pvParameters)
     */
 
     // Call the acceleration handler in analysis.c
-    //accel_handler(buf,i);
+    accel_handler(buf,i);
   }
 }
 
@@ -363,11 +386,14 @@ void user_init(void)
 
     //xTaskCreate(i2cScanTask,"i2cScan",256,NULL,2,NULL);
 
+    settings_init();
+    analysis_init();
     // Start the routine monitoring task
     //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
     xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 		256, &tsqueue, 2, NULL);
 
+    
     
 }
 
