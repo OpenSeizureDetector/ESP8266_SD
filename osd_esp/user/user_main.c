@@ -249,7 +249,7 @@ void monitorAdxl345Task(void *pvParameters) {
 }
 
 
-void AlarmCheckTask(void *pvParam) {
+void alarmCheckTask(void *pvParam) {
   static int dataUpdateCount = 0;
   static int lastAlarmState = 0;
   printf("AlarmCheckTask() - running every second\n");
@@ -459,13 +459,16 @@ void user_init(void)
 
     settings_init();
     analysis_init();
+    comms_init();
     // Start the routine monitoring task
     //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
     xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 		256, &tsqueue, 2, NULL);
-    xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
+    xTaskCreate(alarmCheckTask, "AlarmCheckTask",
 		512, &commsQueue, 2, NULL);
 
+    xTaskCreate(commsTask, "CommsTask",
+		512, &commsQueue, 2, NULL);
     
     
 }

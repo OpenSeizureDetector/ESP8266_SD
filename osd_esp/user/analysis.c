@@ -254,13 +254,12 @@ void do_analysis() {
   }
   // roiPower is average power per bin within ROI.
   anD.roiPower = anD.roiPower/(anD.nMax-anD.nMin);
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%ld, roiPower=%ld",
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"specPower=%d, roiPower=%d",
 		     anD.specPower, anD.roiPower);
   if  (anD.specPower!=0) {
     anD.roiRatio = 10 * anD.roiPower/anD.specPower;
   } else {
-    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING: specPower=%ld, setting ratio to zero",
-		       anD.specPower);
+    if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING: specPower=%d, setting ratio to zero",anD.specPower);
     anD.roiRatio = 0;
   }
 
