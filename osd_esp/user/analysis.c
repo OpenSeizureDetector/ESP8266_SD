@@ -127,7 +127,9 @@ void accel_handler(ADXL345_IVector *data, uint32_t num_samples) {
       if (anD.accDataPos>=anD.nSamp) { 
 	anD.accDataPos = 0;
 	anD.accDataFull = 1;
-	do_analysis();
+	// a separate task looks for anD.accDataFull being true, and does
+	// the analysis if this is the case.
+	//do_analysis();
 	break;
       }
       // add good data to the accData array

@@ -249,6 +249,76 @@ void monitorAdxl345Task(void *pvParameters) {
 }
 
 
+void AlarmCheckTask(void *pvParam) {
+  static int dataUpdateCount = 0;
+  static int lastAlarmState = 0;
+  printf("AlarmCheckTask() - running every second\n");
+  xQueueHandle *commsQueue = (xQueueHandle *)pvParam;
+  while(1) {
+    vTaskDelay(1000 / portTICK_RATE_MS);
+    //printf("AlarmCheckTask() - heap=%d.\n", xPortGetFreeHeapSize());
+    // Do FFT analysis if we have filled the buffer with data.
+    if (anD.accDataFull) {
+      // Analyse the collected data
+      do_analysis();
+
+      // Check if we have detected a fall event
+      if (sdS.fallActive)
+	check_fall();  // sets anD.fallDetected global variable.
+
+      // Check the alarm state, and set the global anD.alarmState variable.
+      alarm_check();
+    
+      // If no seizure detected, modify alarmState to reflect potential fall
+      // detection
+      if ((anD.alarmState == ALARM_STATE_OK) && (anD.fallDetected==1))
+	anD.alarmState = ALARM_STATE_FALL;
+    
+      //  Display alarm message on screen.
+      if (anD.alarmState == ALARM_STATE_OK) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"OK\n");
+      }
+      if (anD.alarmState == ALARM_STATE_WARN) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"WARNING\n");
+      }
+      if (anD.alarmState == ALARM_STATE_ALARM) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"**ALARM**\n");
+      }
+      if (anD.alarmState == ALARM_STATE_FALL) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"**FALL**\n");
+      }
+      if (anD.isManAlarm) {
+	anD.alarmState = ALARM_STATE_MAN_ALARM;
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"** MAN ALARM**\n");
+      }
+      if (anD.isMuted) {
+	anD.alarmState = ALARM_STATE_MUTE;
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"** MUTE **\n");
+      }    
+      
+      // Send data to phone if we have an alarm condition.
+      // or if alarm state has changed from last time.
+      if ((anD.alarmState != ALARM_STATE_OK && !anD.isMuted) ||
+	  (anD.alarmState != lastAlarmState)) {
+	//sendSdData();
+        xQueueSend(*commsQueue, &dataUpdateCount, 0);
+      }
+      lastAlarmState = anD.alarmState;
+    }
+  
+    // See if it is time to send data to the phone.
+    dataUpdateCount++;
+    if (dataUpdateCount>=sdS.dataUpdatePeriod) {
+      //sendSdData();
+      xQueueSend(*commsQueue, &dataUpdateCount, 0);
+      dataUpdateCount = 0;
+    } 
+  }
+}
+
+
+
+
 /* 
  *  Initialises the ADX345 accelerometer, 
  *  If USE_INTR is true,  waits for queue message from
@@ -298,7 +368,7 @@ void receiveAccelDataTask(void *pvParameters)
       if (nFifo ==32) {
 	printf("receiveAccelDataTask() - Warning - FIFO Overflow\n");
       } else {
-	printf("receiveAccelDataTask() - Reading data based on timer - %d readings\n",nFifo);
+	//printf("receiveAccelDataTask() - Reading data based on timer - %d readings\n",nFifo);
       }
       data_ts = 0;
     }
@@ -319,9 +389,9 @@ void receiveAccelDataTask(void *pvParameters)
       if ((ADXL345_readRegister8(ADXL345_REG_FIFO_STATUS)==0)
 	  || (i==ACC_BUF_LEN)) finished = 1;
     }
-    printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
-    	   i,
-    	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
+    //printf("receiveAccelDataTask: read %d points from fifo, %dms r.x=%7d, r.y=%7d, r.z=%7d\n",
+    //	   i,
+    //	   data_ts,r.XAxis,r.YAxis,r.ZAxis);
     /*for (int n=0;n<i;n++) {
       printf("n=%d r.x=%7d, r.y=%7d, r.z=%7d\n",
       n,
@@ -393,6 +463,8 @@ void user_init(void)
     //xTaskCreate(monitorAdxl345Task,"monitorAdxl345",256,NULL,2,NULL);
     xTaskCreate(receiveAccelDataTask, "receiveAccelDataTask",
 		256, &tsqueue, 2, NULL);
+    xTaskCreate(AlarmCheckTask, "AlarmCheckTask",
+		512, &commsQueue, 2, NULL);
 
     
     
