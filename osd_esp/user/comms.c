@@ -88,7 +88,7 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
     return -1;
   } else
       if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
-			 "sendSdData() - allocated socket ok\n");
+			 "sendHttpRequest() - allocated socket ok\n");
 
   // connect
   ret = lwip_connect(s, (struct sockaddr*)&ipaddr, sizeof(ipaddr));
@@ -113,7 +113,6 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
 		     "sendHttpRequest() - req=%s\n",req);
   if (lwip_write(s, req, strlen(req)) < 0) {
     printf("sendHttpRequest()... socket send failed\r\n");
-    close(s);
   } else {
     if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
 		       "sendHttpRequest() - send ok\n");
@@ -121,11 +120,15 @@ int sendHttpRequest(char *serverIp, char *url, int serverPort, char *reqType,
 
   // zero the response buffer, then read the response.
   bzero(response, maxLen);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		       "sendHttpRequest() - zeroed response data - now reading response from socket\n");
   ret = lwip_read(s,response,maxLen);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+		     "sendHttpRequest() - Read data from socket - ret=%d.  response=%s\n",ret,response);
   
-  printf("sendHttpRequest()... done reading from socket. Last read return=%d errno=%d\r\n", ret, errno);
-  close(s);
-
+  lwip_close(s);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,
+  		     "sendHttpRequest() - Socket closed - Returning %d\n",ret);
   return ret;
 }
 
@@ -155,9 +158,10 @@ int sendGetRequest(char *serverIp, char *url, int serverPort,
 int sendPostRequest(char *serverIp, char *url, int serverPort, char *data,
 		   char *response, int maxLen) {
   int r;
-  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendGetRequest(%s)", url);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendPostRequest(%s)", url);
   r = sendHttpRequest(serverIp,url,serverPort,
 		      "POST","application/json",data,response,maxLen);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendPostRequest complete\n");
   return r;
 }
 
@@ -173,10 +177,11 @@ void sendSdData() {
   //ret = sendGetRequest(WEB_IPADDR,"/data",WEB_PORT,buf,BUF_SIZE);
   //if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData() - response=%d - %s",
   //		     ret,buf);
-
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()\n");
   ret = sendPostRequest(WEB_IPADDR,"/data",WEB_PORT,
 			"{\"data\":{\"nsamp\":500,\"roiPower\":200,\"specPower\":30}}",
 			buf,BUF_SIZE);
+  if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData()\n");
   if (debug) APP_LOG(APP_LOG_LEVEL_DEBUG,"sendSdData() - response=%d - %s",
 		     ret,buf);
 
